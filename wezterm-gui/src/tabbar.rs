@@ -65,7 +65,8 @@ impl TabBarItem {
     }
 
     pub fn is_left_or_right(self) -> bool {
-        matches!(self.zone(), TabBarZone::Left | TabBarZone::Right)
+        let zone = self.zone();
+        zone == TabBarZone::Left || zone == TabBarZone::Right
     }
 }
 
@@ -193,7 +194,7 @@ fn compute_tab_title(
 
     match title {
         Some(title) => title,
-        None => {
+        Option::None => {
             let mut items = vec![];
             let mut len = 0;
 
