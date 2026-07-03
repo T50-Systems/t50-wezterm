@@ -410,40 +410,38 @@ struct StatusLineLayout {
     current_x: usize,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct StatusLinePlan {
+    center_width: usize,
+    right_width: usize,
+    right_trim_left: usize,
+}
+
 impl StatusLineLayout {
-    fn right_space(self) -> usize {
+    fn right_width(self) -> usize {
         self.title_width.saturating_sub(self.current_x)
     }
 
-    fn center_space_before_right(self, right_status_len: usize) -> usize {
-        self.title_width
-            .saturating_sub(self.current_x + right_status_len)
-    }
-
-    fn trim_right_status(self, right_status_line: &mut Line) {
-        let status_space_available = self.right_space();
-        while right_status_line.len() > status_space_available {
-            right_status_line.remove_cell(0, SEQ_ZERO);
+    fn right_only_plan(self, right_status_len: usize) -> StatusLinePlan {
+        let right_width = self.right_width();
+        StatusLinePlan {
+            center_width: 0,
+            right_width,
+            right_trim_left: right_status_len.saturating_sub(right_width),
         }
     }
 
-    fn fit_center_status(
-        self,
-        center_status_line: &mut Line,
-        right_status_len: usize,
-        filler: &Cell,
-    ) {
-        let center_space_available = self.center_space_before_right(right_status_len);
-        if center_status_line.len() > center_space_available {
-            center_status_line.resize(center_space_available, SEQ_ZERO);
-        }
-        while center_status_line.len() < center_space_available {
-            center_status_line.insert_cell(
-                center_status_line.len(),
-                filler.clone(),
-                center_space_available,
-                SEQ_ZERO,
-            );
+    fn center_and_right_plan(self, right_status_len: usize) -> StatusLinePlan {
+        let center_width = self
+            .title_width
+            .saturating_sub(self.current_x + right_status_len);
+        let right_width = self
+            .title_width
+            .saturating_sub(self.current_x + center_width);
+        StatusLinePlan {
+            center_width,
+            right_width,
+            right_trim_left: right_status_len.saturating_sub(right_width),
         }
     }
 }
@@ -851,17 +849,17 @@ impl<'a> TabBarBuilder<'a> {
         title_width: usize,
         center_status: String,
     ) {
-        let layout = StatusLineLayout {
-            title_width,
-            current_x: self.x,
-        };
         let mut right_status_line =
             parse_status_text(self.right_status, self.black_cell.attrs().clone());
-        let right_status_len = right_status_line.len();
+        let plan = StatusLineLayout {
+            title_width,
+            current_x: self.x,
+        }
+        .center_and_right_plan(right_status_line.len());
 
         let mut center_status_line =
             parse_status_text(&center_status, self.black_cell.attrs().clone());
-        layout.fit_center_status(&mut center_status_line, right_status_len, &self.black_cell);
+        self.fit_status_line_to_width(&mut center_status_line, plan.center_width);
 
         if center_status_line.len() > 0 {
             self.items.push(TabEntry {
@@ -874,36 +872,47 @@ impl<'a> TabBarBuilder<'a> {
             self.line.append_line(center_status_line, SEQ_ZERO);
         }
 
-        let layout = StatusLineLayout {
-            title_width,
-            current_x: self.x,
-        };
         self.items.push(TabEntry {
             item: TabBarItem::RightStatus,
             title: right_status_line.clone(),
             x: self.x,
-            width: layout.right_space(),
+            width: plan.right_width,
         });
-        layout.trim_right_status(&mut right_status_line);
+        self.trim_status_line_left(&mut right_status_line, plan.right_trim_left);
         self.line.append_line(right_status_line, SEQ_ZERO);
     }
 
     fn append_right_status(&mut self, title_width: usize) {
-        let layout = StatusLineLayout {
-            title_width,
-            current_x: self.x,
-        };
         let mut right_status_line =
             parse_status_text(self.right_status, self.black_cell.attrs().clone());
+        let plan = StatusLineLayout {
+            title_width,
+            current_x: self.x,
+        }
+        .right_only_plan(right_status_line.len());
         self.items.push(TabEntry {
             item: TabBarItem::RightStatus,
             title: right_status_line.clone(),
             x: self.x,
-            width: layout.right_space(),
+            width: plan.right_width,
         });
 
-        layout.trim_right_status(&mut right_status_line);
+        self.trim_status_line_left(&mut right_status_line, plan.right_trim_left);
         self.line.append_line(right_status_line, SEQ_ZERO);
+    }
+    fn fit_status_line_to_width(&self, status_line: &mut Line, width: usize) {
+        if status_line.len() > width {
+            status_line.resize(width, SEQ_ZERO);
+        }
+        while status_line.len() < width {
+            status_line.insert_cell(status_line.len(), self.black_cell.clone(), width, SEQ_ZERO);
+        }
+    }
+
+    fn trim_status_line_left(&self, status_line: &mut Line, cells_to_remove: usize) {
+        for _ in 0..cells_to_remove {
+            status_line.remove_cell(0, SEQ_ZERO);
+        }
     }
 
     fn pad_to_title_width(&mut self, title_width: usize) {
@@ -1343,11 +1352,9 @@ mod pane_label_tests {
 #[cfg(test)]
 mod tab_bar_policy_tests {
     use super::{
-        IntegratedTitleButtonReservation, StatusLineLayout, TabBarContentMode, TabWidthPolicy,
+        IntegratedTitleButtonReservation, StatusLineLayout, StatusLinePlan, TabBarContentMode,
+        TabWidthPolicy,
     };
-    use termwiz::cell::{Cell, CellAttributes};
-    use termwiz::surface::SEQ_ZERO;
-    use wezterm_term::Line;
     use window::{
         IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle,
     };
@@ -1409,31 +1416,39 @@ mod tab_bar_policy_tests {
     }
 
     #[test]
-    fn status_line_layout_fits_center_before_right_status() {
-        let layout = StatusLineLayout {
+    fn status_line_layout_plans_center_before_right_status() {
+        let plan = StatusLineLayout {
             title_width: 10,
             current_x: 2,
-        };
-        let filler = Cell::blank_with_attrs(CellAttributes::blank());
-        let mut center = Line::from_text("CENTER", &CellAttributes::blank(), SEQ_ZERO, None);
+        }
+        .center_and_right_plan(3);
 
-        layout.fit_center_status(&mut center, 3, &filler);
-
-        assert_eq!(center.len(), 5);
+        assert_eq!(
+            plan,
+            StatusLinePlan {
+                center_width: 5,
+                right_width: 3,
+                right_trim_left: 0,
+            }
+        );
     }
 
     #[test]
-    fn status_line_layout_trims_right_status_from_left() {
-        let layout = StatusLineLayout {
+    fn status_line_layout_plans_right_status_left_trim() {
+        let plan = StatusLineLayout {
             title_width: 5,
             current_x: 2,
-        };
-        let mut right = Line::from_text("RIGHT", &CellAttributes::blank(), SEQ_ZERO, None);
+        }
+        .right_only_plan(5);
 
-        layout.trim_right_status(&mut right);
-
-        assert_eq!(right.len(), 3);
-        assert_eq!(right.as_str(), "GHT");
+        assert_eq!(
+            plan,
+            StatusLinePlan {
+                center_width: 0,
+                right_width: 3,
+                right_trim_left: 2,
+            }
+        );
     }
 }
 
