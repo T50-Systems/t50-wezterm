@@ -7,41 +7,89 @@ use mux::renderable::RenderableDimensions;
 use wezterm_term::color::ColorAttribute;
 use window::color::LinearRgba;
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct BarGeometryInput {
+    pixel_height: usize,
+    border_top: f32,
+    border_bottom: f32,
+    tab_bar_height: f32,
+    show_tab_bar: bool,
+    tab_bar_at_bottom: bool,
+    secondary_enabled: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct BarGeometry {
+    primary_y: Option<f32>,
+    secondary_y: Option<f32>,
+    top_height: f32,
+    bottom_height: f32,
+}
+
+impl BarGeometry {
+    fn compute(input: BarGeometryInput) -> Self {
+        if !input.show_tab_bar {
+            return Self {
+                primary_y: None,
+                secondary_y: None,
+                top_height: 0.,
+                bottom_height: 0.,
+            };
+        }
+
+        let bottom_y =
+            ((input.pixel_height as f32) - (input.tab_bar_height + input.border_bottom)).max(0.);
+
+        if input.tab_bar_at_bottom {
+            Self {
+                primary_y: Some(bottom_y),
+                secondary_y: input.secondary_enabled.then_some(input.border_top),
+                top_height: if input.secondary_enabled {
+                    input.tab_bar_height
+                } else {
+                    0.
+                },
+                bottom_height: input.tab_bar_height,
+            }
+        } else {
+            Self {
+                primary_y: Some(input.border_top),
+                secondary_y: input.secondary_enabled.then_some(bottom_y),
+                top_height: input.tab_bar_height,
+                bottom_height: if input.secondary_enabled {
+                    input.tab_bar_height
+                } else {
+                    0.
+                },
+            }
+        }
+    }
+}
+
 impl crate::TermWindow {
     pub fn secondary_tab_bar_enabled(&self) -> bool {
         self.show_tab_bar && self.config.enable_secondary_bar
     }
 
-    pub fn top_bar_pixel_height(&self) -> f32 {
-        if !self.show_tab_bar {
-            return 0.;
-        }
+    fn bar_geometry(&self) -> anyhow::Result<BarGeometry> {
+        let border = self.get_os_border();
+        Ok(BarGeometry::compute(BarGeometryInput {
+            pixel_height: self.dimensions.pixel_height,
+            border_top: border.top.get() as f32,
+            border_bottom: border.bottom.get() as f32,
+            tab_bar_height: self.tab_bar_pixel_height()?,
+            show_tab_bar: self.show_tab_bar,
+            tab_bar_at_bottom: self.config.tab_bar_at_bottom,
+            secondary_enabled: self.secondary_tab_bar_enabled(),
+        }))
+    }
 
-        let height = self.tab_bar_pixel_height().unwrap_or(0.);
-        if self.config.tab_bar_at_bottom {
-            if self.secondary_tab_bar_enabled() {
-                height
-            } else {
-                0.
-            }
-        } else {
-            height
-        }
+    pub fn top_bar_pixel_height(&self) -> f32 {
+        self.bar_geometry().map(|g| g.top_height).unwrap_or(0.)
     }
 
     pub fn bottom_bar_pixel_height(&self) -> f32 {
-        if !self.show_tab_bar {
-            return 0.;
-        }
-
-        let height = self.tab_bar_pixel_height().unwrap_or(0.);
-        if self.config.tab_bar_at_bottom {
-            height
-        } else if self.secondary_tab_bar_enabled() {
-            height
-        } else {
-            0.
-        }
+        self.bar_geometry().map(|g| g.bottom_height).unwrap_or(0.)
     }
 
     pub fn total_bar_pixel_height(&self) -> f32 {
@@ -49,29 +97,11 @@ impl crate::TermWindow {
     }
 
     pub fn primary_tab_bar_y(&self) -> anyhow::Result<f32> {
-        let border = self.get_os_border();
-        let tab_bar_height = self.tab_bar_pixel_height()?;
-        Ok(if self.config.tab_bar_at_bottom {
-            ((self.dimensions.pixel_height as f32) - (tab_bar_height + border.bottom.get() as f32))
-                .max(0.)
-        } else {
-            border.top.get() as f32
-        })
+        Ok(self.bar_geometry()?.primary_y.unwrap_or(0.))
     }
 
     pub fn secondary_tab_bar_y(&self) -> anyhow::Result<Option<f32>> {
-        if !self.secondary_tab_bar_enabled() {
-            return Ok(None);
-        }
-
-        let border = self.get_os_border();
-        let tab_bar_height = self.tab_bar_pixel_height()?;
-        Ok(Some(if self.config.tab_bar_at_bottom {
-            border.top.get() as f32
-        } else {
-            ((self.dimensions.pixel_height as f32) - (tab_bar_height + border.bottom.get() as f32))
-                .max(0.)
-        }))
+        Ok(self.bar_geometry()?.secondary_y)
     }
 
     fn paint_one_tab_bar(
@@ -201,5 +231,92 @@ impl crate::TermWindow {
 
     pub fn tab_bar_pixel_height(&self) -> anyhow::Result<f32> {
         Self::tab_bar_pixel_height_impl(&self.config, &self.fonts, &self.render_metrics)
+    }
+}
+
+#[cfg(test)]
+mod bar_geometry_tests {
+    use super::{BarGeometry, BarGeometryInput};
+
+    fn input(
+        show_tab_bar: bool,
+        tab_bar_at_bottom: bool,
+        secondary_enabled: bool,
+    ) -> BarGeometryInput {
+        BarGeometryInput {
+            pixel_height: 100,
+            border_top: 3.,
+            border_bottom: 5.,
+            tab_bar_height: 10.,
+            show_tab_bar,
+            tab_bar_at_bottom,
+            secondary_enabled,
+        }
+    }
+
+    #[test]
+    fn no_tabbar_has_no_bars_or_offsets() {
+        let geometry = BarGeometry::compute(input(false, false, true));
+
+        assert_eq!(geometry.primary_y, None);
+        assert_eq!(geometry.secondary_y, None);
+        assert_eq!(geometry.top_height, 0.);
+        assert_eq!(geometry.bottom_height, 0.);
+    }
+
+    #[test]
+    fn top_primary_without_secondary_offsets_content_top() {
+        let geometry = BarGeometry::compute(input(true, false, false));
+
+        assert_eq!(geometry.primary_y, Some(3.));
+        assert_eq!(geometry.secondary_y, None);
+        assert_eq!(geometry.top_height, 10.);
+        assert_eq!(geometry.bottom_height, 0.);
+    }
+
+    #[test]
+    fn bottom_primary_without_secondary_offsets_content_bottom() {
+        let geometry = BarGeometry::compute(input(true, true, false));
+
+        assert_eq!(geometry.primary_y, Some(85.));
+        assert_eq!(geometry.secondary_y, None);
+        assert_eq!(geometry.top_height, 0.);
+        assert_eq!(geometry.bottom_height, 10.);
+    }
+
+    #[test]
+    fn top_primary_with_secondary_places_secondary_at_bottom() {
+        let geometry = BarGeometry::compute(input(true, false, true));
+
+        assert_eq!(geometry.primary_y, Some(3.));
+        assert_eq!(geometry.secondary_y, Some(85.));
+        assert_eq!(geometry.top_height, 10.);
+        assert_eq!(geometry.bottom_height, 10.);
+    }
+
+    #[test]
+    fn bottom_primary_with_secondary_places_secondary_at_top() {
+        let geometry = BarGeometry::compute(input(true, true, true));
+
+        assert_eq!(geometry.primary_y, Some(85.));
+        assert_eq!(geometry.secondary_y, Some(3.));
+        assert_eq!(geometry.top_height, 10.);
+        assert_eq!(geometry.bottom_height, 10.);
+    }
+
+    #[test]
+    fn small_window_height_clamps_bottom_bar_to_zero() {
+        let geometry = BarGeometry::compute(BarGeometryInput {
+            pixel_height: 8,
+            border_top: 3.,
+            border_bottom: 5.,
+            tab_bar_height: 10.,
+            show_tab_bar: true,
+            tab_bar_at_bottom: true,
+            secondary_enabled: true,
+        });
+
+        assert_eq!(geometry.primary_y, Some(0.));
+        assert_eq!(geometry.secondary_y, Some(3.));
     }
 }

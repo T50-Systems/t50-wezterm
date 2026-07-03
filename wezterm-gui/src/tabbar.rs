@@ -3,13 +3,13 @@ use config::{ConfigHandle, TabBarColors};
 use finl_unicode::grapheme_clusters::Graphemes;
 use mlua::FromLua;
 use mux::pane::PaneId;
-use termwiz::cell::{unicode_column_width, Cell, CellAttributes};
+use termwiz::cell::{Cell, CellAttributes, unicode_column_width};
 use termwiz::color::{AnsiColor, ColorSpec};
 use termwiz::escape::csi::Sgr;
 use termwiz::escape::parser::Parser;
-use termwiz::escape::{Action, ControlCode, CSI};
+use termwiz::escape::{Action, CSI, ControlCode};
 use termwiz::surface::SEQ_ZERO;
-use termwiz_funcs::{format_as_escapes, FormatColor, FormatItem};
+use termwiz_funcs::{FormatColor, FormatItem, format_as_escapes};
 use wezterm_term::{Line, Progress};
 use window::{IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle};
 
@@ -65,7 +65,8 @@ impl TabBarItem {
     }
 
     pub fn is_left_or_right(self) -> bool {
-        matches!(self.zone(), TabBarZone::Left | TabBarZone::Right)
+        let zone = self.zone();
+        zone == TabBarZone::Left || zone == TabBarZone::Right
     }
 }
 
@@ -193,7 +194,7 @@ fn compute_tab_title(
 
     match title {
         Some(title) => title,
-        None => {
+        Option::None => {
             let mut items = vec![];
             let mut len = 0;
 
@@ -267,6 +268,73 @@ fn is_tab_hover(mouse_x: Option<usize>, x: usize, tab_title_len: usize) -> bool 
     return mouse_x
         .map(|mouse_x| mouse_x >= x && mouse_x < x + tab_title_len)
         .unwrap_or(false);
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct PaneLabelFormatter {
+    zero_based: bool,
+    max_title_cell_width: usize,
+}
+
+impl PaneLabelFormatter {
+    fn new(zero_based: bool) -> Self {
+        Self {
+            zero_based,
+            max_title_cell_width: 12,
+        }
+    }
+
+    fn display_index(&self, pane_index: usize) -> usize {
+        pane_index + usize::from(!self.zero_based)
+    }
+
+    fn title_for(&self, title: &str) -> String {
+        let title = title.rsplit(['/', '\\']).next().unwrap_or(title);
+        let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
+        let title = if title.is_empty() {
+            "shell".to_string()
+        } else {
+            title
+        };
+
+        truncate_to_cell_width(&title, self.max_title_cell_width)
+    }
+
+    fn label_for(&self, pane_index: usize, title: &str) -> String {
+        format!(
+            " {}:{} ",
+            self.display_index(pane_index),
+            self.title_for(title)
+        )
+    }
+}
+
+fn truncate_to_cell_width(text: &str, max_width: usize) -> String {
+    if unicode_column_width(text, None) <= max_width {
+        return text.to_string();
+    }
+
+    if max_width == 0 {
+        return String::new();
+    }
+
+    let ellipsis = "…";
+    let ellipsis_width = unicode_column_width(ellipsis, None);
+    let content_width = max_width.saturating_sub(ellipsis_width);
+    let mut result = String::new();
+    let mut width = 0;
+
+    for grapheme in Graphemes::new(text) {
+        let grapheme_width = unicode_column_width(grapheme, None);
+        if width + grapheme_width > content_width {
+            break;
+        }
+        result.push_str(grapheme);
+        width += grapheme_width;
+    }
+
+    result.push_str(ellipsis);
+    result
 }
 
 impl TabBarState {
@@ -377,37 +445,21 @@ impl TabBarState {
         }
     }
 
-    fn shorten_pane_title(title: &str) -> String {
-        let title = title.rsplit(['/', '\\']).next().unwrap_or(title);
-        let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
-        let mut title = if title.is_empty() {
-            "shell".to_string()
-        } else {
-            title
-        };
-        if title.chars().count() > 12 {
-            title = title.chars().take(11).collect::<String>() + "…";
-        }
-        title
-    }
-
     fn append_center_pane_status(
         x: &mut usize,
         pane_info: &[PaneInformation],
         items: &mut Vec<TabEntry>,
         line: &mut Line,
         default_attrs: &CellAttributes,
+        zero_based: bool,
     ) {
         if pane_info.len() <= 1 {
             return;
         }
 
         for (idx, pane) in pane_info.iter().enumerate() {
-            let label = format!(
-                " {}:{} ",
-                pane.pane_index + 1,
-                Self::shorten_pane_title(&pane.title)
-            );
+            let formatter = PaneLabelFormatter::new(zero_based);
+            let label = formatter.label_for(pane.pane_index, &pane.title);
             let pane_line = parse_status_text(&label, default_attrs.clone());
             let width = pane_line.len();
             items.push(TabEntry {
@@ -434,7 +486,55 @@ impl TabBarState {
     /// mouse_x is some if the mouse is on the same row as the tab bar.
     /// title_width is the total number of cell columns in the window.
     /// window allows access to the tabs associated with the window.
-    pub fn new(
+    pub fn new_primary(
+        title_width: usize,
+        mouse_x: Option<usize>,
+        tab_info: &[TabInformation],
+        pane_info: &[PaneInformation],
+        colors: Option<&TabBarColors>,
+        config: &ConfigHandle,
+        left_status: &str,
+        right_status: &str,
+    ) -> Self {
+        Self::build(
+            title_width,
+            mouse_x,
+            tab_info,
+            pane_info,
+            colors,
+            config,
+            left_status,
+            "",
+            right_status,
+            TabBarContentMode::Full,
+        )
+    }
+
+    pub fn new_status_bar(
+        title_width: usize,
+        tab_info: &[TabInformation],
+        pane_info: &[PaneInformation],
+        colors: Option<&TabBarColors>,
+        config: &ConfigHandle,
+        left_status: &str,
+        center_status: &str,
+        right_status: &str,
+    ) -> Self {
+        Self::build(
+            title_width,
+            None,
+            tab_info,
+            pane_info,
+            colors,
+            config,
+            left_status,
+            center_status,
+            right_status,
+            TabBarContentMode::StatusOnly,
+        )
+    }
+
+    fn build(
         title_width: usize,
         mouse_x: Option<usize>,
         tab_info: &[TabInformation],
@@ -648,6 +748,7 @@ impl TabBarState {
                 &mut items,
                 &mut line,
                 black_cell.attrs(),
+                config.tab_and_split_indices_are_zero_based,
             );
 
             // New tab button
@@ -916,4 +1017,195 @@ pub fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
     });
     flush_print(&mut print_buffer, &mut cells, &pen);
     Line::from_cells(cells, SEQ_ZERO)
+}
+
+#[cfg(test)]
+mod pane_label_tests {
+    use super::PaneLabelFormatter;
+    use termwiz::cell::unicode_column_width;
+
+    #[test]
+    fn normalizes_empty_title_to_shell() {
+        let formatter = PaneLabelFormatter::new(false);
+
+        assert_eq!(formatter.title_for("   \t  "), "shell");
+        assert_eq!(formatter.label_for(0, ""), " 1:shell ");
+    }
+
+    #[test]
+    fn keeps_basename_and_collapses_whitespace() {
+        let formatter = PaneLabelFormatter::new(false);
+
+        assert_eq!(
+            formatter.title_for(r"C:\Users\me\project   shell.exe"),
+            "project she…"
+        );
+        assert_eq!(formatter.title_for("/tmp/my    app"), "my app");
+    }
+
+    #[test]
+    fn supports_zero_based_indices() {
+        let one_based = PaneLabelFormatter::new(false);
+        let zero_based = PaneLabelFormatter::new(true);
+
+        assert_eq!(one_based.label_for(2, "pwsh"), " 3:pwsh ");
+        assert_eq!(zero_based.label_for(2, "pwsh"), " 2:pwsh ");
+    }
+
+    #[test]
+    fn truncates_without_exceeding_cell_width() {
+        let formatter = PaneLabelFormatter::new(false);
+        let title = formatter.title_for("abcdefghijklmnopqrstuvwxyz");
+
+        assert_eq!(title, "abcdefghijk…");
+        assert!(unicode_column_width(&title, None) <= 12);
+    }
+
+    #[test]
+    fn truncates_cjk_by_cell_width() {
+        let formatter = PaneLabelFormatter::new(false);
+        let title = formatter.title_for("界界界界界界界");
+
+        assert_eq!(title, "界界界界界…");
+        assert!(unicode_column_width(&title, None) <= 12);
+    }
+
+    #[test]
+    fn truncates_emoji_without_splitting_graphemes() {
+        let formatter = PaneLabelFormatter::new(false);
+        let title = formatter.title_for("😀😀😀😀😀😀😀");
+
+        assert!(title.ends_with('…'));
+        assert!(unicode_column_width(&title, None) <= 12);
+    }
+}
+
+#[cfg(test)]
+mod tab_bar_constructor_tests {
+    use super::{TabBarItem, TabBarState};
+    use crate::termwindow::{PaneInformation, TabInformation};
+    use config::ConfigHandle;
+
+    #[test]
+    fn primary_constructor_does_not_emit_center_status_without_center_input() {
+        let config = ConfigHandle::default_config();
+        let tabs: Vec<TabInformation> = vec![];
+        let panes: Vec<PaneInformation> = vec![];
+        let tab_bar =
+            TabBarState::new_primary(80, None, &tabs, &panes, None, &config, "LEFT", "RIGHT");
+
+        assert!(
+            tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::LeftStatus)
+        );
+        assert!(
+            tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::RightStatus)
+        );
+        assert!(
+            !tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::CenterStatus)
+        );
+        assert!(
+            !tab_bar
+                .items()
+                .iter()
+                .any(|entry| matches!(entry.item, TabBarItem::PaneStatus { .. }))
+        );
+    }
+
+    #[test]
+    fn status_bar_constructor_never_emits_activation_items() {
+        let config = ConfigHandle::default_config();
+        let tabs: Vec<TabInformation> = vec![];
+        let panes: Vec<PaneInformation> = vec![];
+        let tab_bar = TabBarState::new_status_bar(
+            80, &tabs, &panes, None, &config, "LEFT", "CENTER", "RIGHT",
+        );
+
+        assert!(
+            tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::LeftStatus)
+        );
+        assert!(
+            tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::CenterStatus)
+        );
+        assert!(
+            tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::RightStatus)
+        );
+        assert!(
+            !tab_bar
+                .items()
+                .iter()
+                .any(|entry| matches!(entry.item, TabBarItem::Tab { .. }))
+        );
+        assert!(
+            !tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::NewTabButton)
+        );
+    }
+}
+
+#[cfg(test)]
+mod ui_item_geometry_tests {
+    use super::{TabBarItem, TabBarState, TabEntry};
+    use termwiz::surface::SEQ_ZERO;
+    use wezterm_term::Line;
+
+    fn tab_bar_with_pane_status() -> TabBarState {
+        TabBarState {
+            line: Line::with_width(0, SEQ_ZERO),
+            items: vec![TabEntry {
+                item: TabBarItem::PaneStatus {
+                    pane_id: 42,
+                    active: true,
+                },
+                title: Line::with_width(0, SEQ_ZERO),
+                x: 3,
+                width: 5,
+            }],
+        }
+    }
+
+    #[test]
+    fn compute_ui_items_preserves_pane_status_cell_geometry() {
+        let ui_items = tab_bar_with_pane_status().compute_ui_items(10, 20, 8);
+
+        assert_eq!(ui_items.len(), 1);
+        assert_eq!(ui_items[0].x, 24);
+        assert_eq!(ui_items[0].y, 10);
+        assert_eq!(ui_items[0].width, 40);
+        assert_eq!(ui_items[0].height, 20);
+        assert_eq!(
+            ui_items[0].item_type,
+            crate::termwindow::UIItemType::TabBar(TabBarItem::PaneStatus {
+                pane_id: 42,
+                active: true,
+            })
+        );
+    }
+
+    #[test]
+    fn compute_ui_items_uses_supplied_secondary_bar_y_coordinate() {
+        let secondary_y = 30;
+        let ui_items = tab_bar_with_pane_status().compute_ui_items(secondary_y, 20, 8);
+
+        assert_eq!(ui_items[0].y, secondary_y);
+    }
 }

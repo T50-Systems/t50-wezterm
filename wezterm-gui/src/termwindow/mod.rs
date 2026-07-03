@@ -14,7 +14,7 @@ use crate::scripting::guiwin::GuiWin;
 use crate::scrollbar::*;
 use crate::selection::Selection;
 use crate::shapecache::*;
-use crate::tabbar::{TabBarContentMode, TabBarItem, TabBarState};
+use crate::tabbar::{TabBarItem, TabBarState};
 use crate::termwindow::background::{
     load_background_image, reload_background_image, LoadedBackgroundLayer,
 };
@@ -2024,7 +2024,7 @@ impl TermWindow {
             None => false,
         };
 
-        let new_tab_bar = TabBarState::new(
+        let new_tab_bar = TabBarState::new_primary(
             self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize,
             if hovering_in_tab_bar {
                 Some(self.last_mouse_coords.0)
@@ -2036,14 +2036,11 @@ impl TermWindow {
             self.config.resolved_palette.tab_bar.as_ref(),
             &self.config,
             &self.left_status,
-            "",
             &self.right_status,
-            TabBarContentMode::Full,
         );
         let new_secondary_tab_bar = if self.config.enable_secondary_bar && self.show_tab_bar {
-            TabBarState::new(
+            TabBarState::new_status_bar(
                 self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize,
-                None,
                 &tabs,
                 &panes,
                 self.config.resolved_palette.tab_bar.as_ref(),
@@ -2051,7 +2048,6 @@ impl TermWindow {
                 &self.secondary_left_status,
                 &self.secondary_center_status,
                 &self.secondary_right_status,
-                TabBarContentMode::StatusOnly,
             )
         } else {
             TabBarState::default()
