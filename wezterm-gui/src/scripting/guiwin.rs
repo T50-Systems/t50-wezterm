@@ -14,13 +14,35 @@ use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_toast_notification::ToastNotification;
 use window::{Connection, ConnectionOps, DeadKeyStatus, WindowOps, WindowState};
 
-#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct SecondaryBarState {
     left: String,
     center: String,
     right: String,
 }
-impl_lua_conversion_dynamic!(SecondaryBarState);
+
+impl SecondaryBarState {
+    fn from_lua_value(value: mlua::Value) -> mlua::Result<Self> {
+        let table = match value {
+            mlua::Value::Table(table) => table,
+            value => {
+                return Err(mlua::Error::FromLuaConversionError {
+                    from: value.type_name(),
+                    to: "SecondaryBarState",
+                    message: Some("expected table with optional left, center, and right fields".into()),
+                });
+            }
+        };
+
+        Ok(Self {
+            left: table.get::<_, Option<String>>("left")?.unwrap_or_default(),
+            center: table
+                .get::<_, Option<String>>("center")?
+                .unwrap_or_default(),
+            right: table.get::<_, Option<String>>("right")?.unwrap_or_default(),
+        })
+    }
+}
 
 #[derive(Clone)]
 pub struct GuiWin {
@@ -112,7 +134,8 @@ impl UserData for GuiWin {
             this.window.notify(TermWindowNotif::SetLeftStatus(status));
             Ok(())
         });
-        methods.add_method("set_secondary_bar", |_, this, bar: SecondaryBarState| {
+        methods.add_method("set_secondary_bar", |_, this, value: mlua::Value| {
+            let bar = SecondaryBarState::from_lua_value(value)?;
             this.window.notify(TermWindowNotif::SetSecondaryBar {
                 left: bar.left,
                 center: bar.center,
@@ -351,5 +374,54 @@ impl UserData for GuiWin {
                 Ok(result)
             },
         );
+    }
+}
+
+#[cfg(test)]
+mod secondary_bar_state_tests {
+    use super::SecondaryBarState;
+    use mlua::Lua;
+
+    #[test]
+    fn parses_full_secondary_bar_table() {
+        let lua = Lua::new();
+        let table = lua.create_table().unwrap();
+        table.set("left", "L").unwrap();
+        table.set("center", "C").unwrap();
+        table.set("right", "R").unwrap();
+
+        let state = SecondaryBarState::from_lua_value(mlua::Value::Table(table)).unwrap();
+
+        assert_eq!(
+            state,
+            SecondaryBarState {
+                left: "L".to_string(),
+                center: "C".to_string(),
+                right: "R".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn defaults_missing_secondary_bar_fields_to_empty() {
+        let lua = Lua::new();
+        let table = lua.create_table().unwrap();
+        table.set("center", "only center").unwrap();
+
+        let state = SecondaryBarState::from_lua_value(mlua::Value::Table(table)).unwrap();
+
+        assert_eq!(state.left, "");
+        assert_eq!(state.center, "only center");
+        assert_eq!(state.right, "");
+    }
+
+    #[test]
+    fn rejects_non_table_secondary_bar_state() {
+        let err = SecondaryBarState::from_lua_value(mlua::Value::String(
+            Lua::new().create_string("bad").unwrap(),
+        ))
+        .unwrap_err();
+
+        assert!(err.to_string().contains("expected table"));
     }
 }
