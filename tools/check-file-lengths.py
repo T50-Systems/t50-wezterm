@@ -56,7 +56,6 @@ TEMP_ALLOWED = {
     "bintree/src/lib.rs",
     "ci/generate-docs.py",
     "ci/generate-workflows.py",
-    "codec/src/lib.rs",
     "config/src/color.rs",
     "config/src/config.rs",
     "config/src/font.rs",
