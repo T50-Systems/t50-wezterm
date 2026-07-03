@@ -486,7 +486,55 @@ impl TabBarState {
     /// mouse_x is some if the mouse is on the same row as the tab bar.
     /// title_width is the total number of cell columns in the window.
     /// window allows access to the tabs associated with the window.
-    pub fn new(
+    pub fn new_primary(
+        title_width: usize,
+        mouse_x: Option<usize>,
+        tab_info: &[TabInformation],
+        pane_info: &[PaneInformation],
+        colors: Option<&TabBarColors>,
+        config: &ConfigHandle,
+        left_status: &str,
+        right_status: &str,
+    ) -> Self {
+        Self::build(
+            title_width,
+            mouse_x,
+            tab_info,
+            pane_info,
+            colors,
+            config,
+            left_status,
+            "",
+            right_status,
+            TabBarContentMode::Full,
+        )
+    }
+
+    pub fn new_status_bar(
+        title_width: usize,
+        tab_info: &[TabInformation],
+        pane_info: &[PaneInformation],
+        colors: Option<&TabBarColors>,
+        config: &ConfigHandle,
+        left_status: &str,
+        center_status: &str,
+        right_status: &str,
+    ) -> Self {
+        Self::build(
+            title_width,
+            None,
+            tab_info,
+            pane_info,
+            colors,
+            config,
+            left_status,
+            center_status,
+            right_status,
+            TabBarContentMode::StatusOnly,
+        )
+    }
+
+    fn build(
         title_width: usize,
         mouse_x: Option<usize>,
         tab_info: &[TabInformation],
@@ -1029,5 +1077,87 @@ mod pane_label_tests {
 
         assert!(title.ends_with('…'));
         assert!(unicode_column_width(&title, None) <= 12);
+    }
+}
+
+#[cfg(test)]
+mod tab_bar_constructor_tests {
+    use super::{TabBarItem, TabBarState};
+    use crate::termwindow::{PaneInformation, TabInformation};
+    use config::ConfigHandle;
+
+    #[test]
+    fn primary_constructor_does_not_emit_center_status_without_center_input() {
+        let config = ConfigHandle::default_config();
+        let tabs: Vec<TabInformation> = vec![];
+        let panes: Vec<PaneInformation> = vec![];
+        let tab_bar =
+            TabBarState::new_primary(80, None, &tabs, &panes, None, &config, "LEFT", "RIGHT");
+
+        assert!(
+            tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::LeftStatus)
+        );
+        assert!(
+            tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::RightStatus)
+        );
+        assert!(
+            !tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::CenterStatus)
+        );
+        assert!(
+            !tab_bar
+                .items()
+                .iter()
+                .any(|entry| matches!(entry.item, TabBarItem::PaneStatus { .. }))
+        );
+    }
+
+    #[test]
+    fn status_bar_constructor_never_emits_activation_items() {
+        let config = ConfigHandle::default_config();
+        let tabs: Vec<TabInformation> = vec![];
+        let panes: Vec<PaneInformation> = vec![];
+        let tab_bar = TabBarState::new_status_bar(
+            80, &tabs, &panes, None, &config, "LEFT", "CENTER", "RIGHT",
+        );
+
+        assert!(
+            tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::LeftStatus)
+        );
+        assert!(
+            tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::CenterStatus)
+        );
+        assert!(
+            tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::RightStatus)
+        );
+        assert!(
+            !tab_bar
+                .items()
+                .iter()
+                .any(|entry| matches!(entry.item, TabBarItem::Tab { .. }))
+        );
+        assert!(
+            !tab_bar
+                .items()
+                .iter()
+                .any(|entry| entry.item == TabBarItem::NewTabButton)
+        );
     }
 }
