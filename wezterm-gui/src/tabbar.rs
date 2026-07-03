@@ -1,5 +1,5 @@
 use crate::termwindow::{PaneInformation, TabInformation, UIItem, UIItemType};
-use config::{ConfigHandle, TabBarColors};
+use config::{ConfigHandle, RgbaColor, TabBarColors};
 use finl_unicode::grapheme_clusters::Graphemes;
 use mlua::FromLua;
 use mux::pane::PaneId;
@@ -421,6 +421,121 @@ impl StatusLineLayout {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+struct StatusTextRenderer {
+    filler: Cell,
+}
+
+impl StatusTextRenderer {
+    fn new(background: RgbaColor) -> Self {
+        Self {
+            filler: Cell::blank_with_attrs(
+                CellAttributes::default()
+                    .set_background(ColorSpec::TrueColor(*background))
+                    .clone(),
+            ),
+        }
+    }
+
+    fn attrs(&self) -> &CellAttributes {
+        self.filler.attrs()
+    }
+
+    fn filler(&self) -> Cell {
+        self.filler.clone()
+    }
+
+    fn parse(&self, text: &str) -> Line {
+        parse_status_text(text, self.attrs().clone())
+    }
+
+    fn fit_to_width(&self, status_line: &mut Line, width: usize) {
+        if status_line.len() > width {
+            status_line.resize(width, SEQ_ZERO);
+        }
+        while status_line.len() < width {
+            status_line.insert_cell(status_line.len(), self.filler(), width, SEQ_ZERO);
+        }
+    }
+
+    fn trim_left(&self, status_line: &mut Line, cells_to_remove: usize) {
+        for _ in 0..cells_to_remove {
+            status_line.remove_cell(0, SEQ_ZERO);
+        }
+    }
+}
+
+struct TabBarStyleAdapter<'a> {
+    config: &'a ConfigHandle,
+}
+
+impl<'a> TabBarStyleAdapter<'a> {
+    fn new(config: &'a ConfigHandle) -> Self {
+        Self { config }
+    }
+
+    fn new_tab_line(&self, options: &TabBarBuildOptions, attrs: CellAttributes) -> Line {
+        parse_status_text(
+            &self.config.tab_bar_style.new_tab,
+            Self::style_attrs(options, attrs),
+        )
+    }
+
+    fn new_tab_hover_line(&self, options: &TabBarBuildOptions, attrs: CellAttributes) -> Line {
+        parse_status_text(
+            &self.config.tab_bar_style.new_tab_hover,
+            Self::style_attrs(options, attrs),
+        )
+    }
+
+    fn integrated_title_button_widths(&self) -> Vec<usize> {
+        let window_hide = parse_status_text(
+            &self.config.tab_bar_style.window_hide,
+            CellAttributes::default(),
+        );
+        let window_hide_hover = parse_status_text(
+            &self.config.tab_bar_style.window_hide_hover,
+            CellAttributes::default(),
+        );
+        let window_maximize = parse_status_text(
+            &self.config.tab_bar_style.window_maximize,
+            CellAttributes::default(),
+        );
+        let window_maximize_hover = parse_status_text(
+            &self.config.tab_bar_style.window_maximize_hover,
+            CellAttributes::default(),
+        );
+        let window_close = parse_status_text(
+            &self.config.tab_bar_style.window_close,
+            CellAttributes::default(),
+        );
+        let window_close_hover = parse_status_text(
+            &self.config.tab_bar_style.window_close_hover,
+            CellAttributes::default(),
+        );
+
+        self.config
+            .integrated_title_buttons
+            .iter()
+            .map(|button| match button {
+                IntegratedTitleButton::Hide => window_hide.len().max(window_hide_hover.len()),
+                IntegratedTitleButton::Maximize => {
+                    window_maximize.len().max(window_maximize_hover.len())
+                }
+                IntegratedTitleButton::Close => window_close.len().max(window_close_hover.len()),
+            })
+            .collect()
+    }
+
+    fn style_attrs(options: &TabBarBuildOptions, attrs: CellAttributes) -> CellAttributes {
+        if options.use_fancy_tab_bar {
+            CellAttributes::default()
+        } else {
+            attrs
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct TabBarBuildOptions {
     show_tabs: bool,
@@ -479,7 +594,7 @@ struct TabBarBuilder<'a> {
     active_tab_no: usize,
     tab_titles: Vec<TitleText>,
     tab_width_max: usize,
-    black_cell: Cell,
+    status_renderer: StatusTextRenderer,
     line: Line,
     x: usize,
     items: Vec<TabEntry>,
@@ -507,22 +622,9 @@ impl<'a> TabBarBuilder<'a> {
         let new_tab_hover_attrs = colors.new_tab_hover().as_cell_attributes();
         let new_tab_attrs = colors.new_tab().as_cell_attributes();
 
-        let new_tab = parse_status_text(
-            &config.tab_bar_style.new_tab,
-            if options.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                new_tab_attrs
-            },
-        );
-        let new_tab_hover = parse_status_text(
-            &config.tab_bar_style.new_tab_hover,
-            if options.use_fancy_tab_bar {
-                CellAttributes::default()
-            } else {
-                new_tab_hover_attrs
-            },
-        );
+        let style = TabBarStyleAdapter::new(config);
+        let new_tab = style.new_tab_line(&options, new_tab_attrs);
+        let new_tab_hover = style.new_tab_hover_line(&options, new_tab_hover_attrs);
 
         let mut active_tab_no = 0;
         let tab_titles = Self::collect_tab_titles(
@@ -535,11 +637,7 @@ impl<'a> TabBarBuilder<'a> {
         );
         let tab_width_max =
             Self::tab_width_max(title_width, &tab_titles, &new_tab, &options, content_mode);
-        let black_cell = Cell::blank_with_attrs(
-            CellAttributes::default()
-                .set_background(ColorSpec::TrueColor(*colors.background()))
-                .clone(),
-        );
+        let status_renderer = StatusTextRenderer::new(colors.background());
         Self {
             title_width,
             mouse_x,
@@ -560,7 +658,7 @@ impl<'a> TabBarBuilder<'a> {
             active_tab_no,
             tab_titles,
             tab_width_max,
-            black_cell,
+            status_renderer,
             line: Line::with_width(0, SEQ_ZERO),
             x: 0,
             items: vec![],
@@ -656,7 +754,7 @@ impl<'a> TabBarBuilder<'a> {
         {
             for _ in 0..10 as usize {
                 self.line
-                    .insert_cell(0, self.black_cell.clone(), self.title_width, SEQ_ZERO);
+                    .insert_cell(0, self.status_renderer.filler(), self.title_width, SEQ_ZERO);
                 self.x += 1;
             }
         }
@@ -681,7 +779,7 @@ impl<'a> TabBarBuilder<'a> {
     }
 
     fn append_left_status(&mut self) {
-        let left_status_line = parse_status_text(self.left_status, self.black_cell.attrs().clone());
+        let left_status_line = self.status_renderer.parse(self.left_status);
         if left_status_line.len() > 0 {
             self.items.push(TabEntry {
                 item: TabBarItem::LeftStatus,
@@ -704,8 +802,7 @@ impl<'a> TabBarBuilder<'a> {
             return;
         }
 
-        let center_status_line =
-            parse_status_text(self.center_status, self.black_cell.attrs().clone());
+        let center_status_line = self.status_renderer.parse(self.center_status);
         if center_status_line.len() > 0 {
             self.items.push(TabEntry {
                 item: TabBarItem::CenterStatus,
@@ -779,7 +876,7 @@ impl<'a> TabBarBuilder<'a> {
             self.pane_info,
             &mut self.items,
             &mut self.line,
-            self.black_cell.attrs(),
+            self.status_renderer.attrs(),
             self.options.zero_based_indices,
         );
         self.append_new_tab_button();
@@ -810,43 +907,7 @@ impl<'a> TabBarBuilder<'a> {
     }
 
     fn title_width_without_right_title_buttons(&self) -> usize {
-        let window_hide = parse_status_text(
-            &self.config.tab_bar_style.window_hide,
-            CellAttributes::default(),
-        );
-        let window_hide_hover = parse_status_text(
-            &self.config.tab_bar_style.window_hide_hover,
-            CellAttributes::default(),
-        );
-        let window_maximize = parse_status_text(
-            &self.config.tab_bar_style.window_maximize,
-            CellAttributes::default(),
-        );
-        let window_maximize_hover = parse_status_text(
-            &self.config.tab_bar_style.window_maximize_hover,
-            CellAttributes::default(),
-        );
-        let window_close = parse_status_text(
-            &self.config.tab_bar_style.window_close,
-            CellAttributes::default(),
-        );
-        let window_close_hover = parse_status_text(
-            &self.config.tab_bar_style.window_close_hover,
-            CellAttributes::default(),
-        );
-
-        let button_widths: Vec<usize> = self
-            .config
-            .integrated_title_buttons
-            .iter()
-            .map(|button| match button {
-                IntegratedTitleButton::Hide => window_hide.len().max(window_hide_hover.len()),
-                IntegratedTitleButton::Maximize => {
-                    window_maximize.len().max(window_maximize_hover.len())
-                }
-                IntegratedTitleButton::Close => window_close.len().max(window_close_hover.len()),
-            })
-            .collect();
+        let button_widths = TabBarStyleAdapter::new(self.config).integrated_title_button_widths();
 
         IntegratedTitleButtonReservation {
             title_width: self.title_width,
@@ -870,17 +931,16 @@ impl<'a> TabBarBuilder<'a> {
         title_width: usize,
         center_status: String,
     ) {
-        let mut right_status_line =
-            parse_status_text(self.right_status, self.black_cell.attrs().clone());
+        let mut right_status_line = self.status_renderer.parse(self.right_status);
         let plan = StatusLineLayout {
             title_width,
             current_x: self.x,
         }
         .center_and_right_plan(right_status_line.len());
 
-        let mut center_status_line =
-            parse_status_text(&center_status, self.black_cell.attrs().clone());
-        self.fit_status_line_to_width(&mut center_status_line, plan.center_width);
+        let mut center_status_line = self.status_renderer.parse(&center_status);
+        self.status_renderer
+            .fit_to_width(&mut center_status_line, plan.center_width);
 
         if center_status_line.len() > 0 {
             self.items.push(TabEntry {
@@ -899,13 +959,13 @@ impl<'a> TabBarBuilder<'a> {
             x: self.x,
             width: plan.right_width,
         });
-        self.trim_status_line_left(&mut right_status_line, plan.right_trim_left);
+        self.status_renderer
+            .trim_left(&mut right_status_line, plan.right_trim_left);
         self.line.append_line(right_status_line, SEQ_ZERO);
     }
 
     fn append_right_status(&mut self, title_width: usize) {
-        let mut right_status_line =
-            parse_status_text(self.right_status, self.black_cell.attrs().clone());
+        let mut right_status_line = self.status_renderer.parse(self.right_status);
         let plan = StatusLineLayout {
             title_width,
             current_x: self.x,
@@ -918,28 +978,15 @@ impl<'a> TabBarBuilder<'a> {
             width: plan.right_width,
         });
 
-        self.trim_status_line_left(&mut right_status_line, plan.right_trim_left);
+        self.status_renderer
+            .trim_left(&mut right_status_line, plan.right_trim_left);
         self.line.append_line(right_status_line, SEQ_ZERO);
-    }
-    fn fit_status_line_to_width(&self, status_line: &mut Line, width: usize) {
-        if status_line.len() > width {
-            status_line.resize(width, SEQ_ZERO);
-        }
-        while status_line.len() < width {
-            status_line.insert_cell(status_line.len(), self.black_cell.clone(), width, SEQ_ZERO);
-        }
-    }
-
-    fn trim_status_line_left(&self, status_line: &mut Line, cells_to_remove: usize) {
-        for _ in 0..cells_to_remove {
-            status_line.remove_cell(0, SEQ_ZERO);
-        }
     }
 
     fn pad_to_title_width(&mut self, title_width: usize) {
         while self.line.len() < title_width {
             self.line
-                .insert_cell(self.x, self.black_cell.clone(), title_width, SEQ_ZERO);
+                .insert_cell(self.x, self.status_renderer.filler(), title_width, SEQ_ZERO);
         }
     }
 
