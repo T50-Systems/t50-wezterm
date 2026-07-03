@@ -87,7 +87,6 @@ TEMP_ALLOWED = {
     "termwiz/src/widgets/mod.rs",
     "wezterm-cell/src/image.rs",
     "wezterm-client/src/client.rs",
-    "wezterm-client/src/domain.rs",
     "wezterm-client/src/pane/clientpane.rs",
     "wezterm-client/src/pane/renderable.rs",
     "wezterm-escape-parser/src/csi.rs",
