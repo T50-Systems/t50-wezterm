@@ -97,7 +97,6 @@ TEMP_ALLOWED = {
     "wezterm-gui/src/customglyph.rs",
     "wezterm-gui/src/frontend.rs",
     "wezterm-gui/src/glyphcache.rs",
-    "wezterm-gui/src/inputmap.rs",
     "wezterm-gui/src/main.rs",
     "wezterm-gui/src/overlay/copy.rs",
     "wezterm-gui/src/overlay/launcher.rs",
