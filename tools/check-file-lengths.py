@@ -52,7 +52,6 @@ EXCLUDED_GLOBS = (
 # Temporary migration allowlist. Remove entries as each phase splits a file.
 TEMP_ALLOWED = {
     "bidi/src/bidi_class.rs",
-    "bidi/src/lib.rs",
     "bintree/src/lib.rs",
     "ci/generate-docs.py",
     "ci/generate-workflows.py",
