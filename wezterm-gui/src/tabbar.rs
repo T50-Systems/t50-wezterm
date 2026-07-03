@@ -2,6 +2,7 @@ use crate::termwindow::{PaneInformation, TabInformation, UIItem, UIItemType};
 use config::{ConfigHandle, TabBarColors};
 use finl_unicode::grapheme_clusters::Graphemes;
 use mlua::FromLua;
+use mux::pane::PaneId;
 use termwiz::cell::{unicode_column_width, Cell, CellAttributes};
 use termwiz::color::{AnsiColor, ColorSpec};
 use termwiz::escape::csi::Sgr;
@@ -22,10 +23,50 @@ pub struct TabBarState {
 pub enum TabBarItem {
     None,
     LeftStatus,
+    CenterStatus,
     RightStatus,
+    PaneStatus { pane_id: PaneId, active: bool },
     Tab { tab_idx: usize, active: bool },
     NewTabButton,
     WindowButton(IntegratedTitleButton),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TabBarZone {
+    Left,
+    Center,
+    Right,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TabBarContentMode {
+    Full,
+    StatusOnly,
+}
+
+impl TabBarItem {
+    pub fn zone(self) -> TabBarZone {
+        match self {
+            Self::LeftStatus => TabBarZone::Left,
+            Self::RightStatus => TabBarZone::Right,
+            // Center is everything that is neither left nor right status.
+            // It includes the main tabbar payload and any center overlays.
+            Self::None
+            | Self::CenterStatus
+            | Self::PaneStatus { .. }
+            | Self::Tab { .. }
+            | Self::NewTabButton
+            | Self::WindowButton(_) => TabBarZone::Center,
+        }
+    }
+
+    pub fn is_center(self) -> bool {
+        self.zone() == TabBarZone::Center
+    }
+
+    pub fn is_left_or_right(self) -> bool {
+        matches!(self.zone(), TabBarZone::Left | TabBarZone::Right)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -34,6 +75,16 @@ pub struct TabEntry {
     pub title: Line,
     x: usize,
     width: usize,
+}
+
+impl TabEntry {
+    pub fn x(&self) -> usize {
+        self.x
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -326,6 +377,59 @@ impl TabBarState {
         }
     }
 
+    fn shorten_pane_title(title: &str) -> String {
+        let title = title.rsplit(['/', '\\']).next().unwrap_or(title);
+        let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
+        let mut title = if title.is_empty() {
+            "shell".to_string()
+        } else {
+            title
+        };
+        if title.chars().count() > 12 {
+            title = title.chars().take(11).collect::<String>() + "…";
+        }
+        title
+    }
+
+    fn append_center_pane_status(
+        x: &mut usize,
+        pane_info: &[PaneInformation],
+        items: &mut Vec<TabEntry>,
+        line: &mut Line,
+        default_attrs: &CellAttributes,
+    ) {
+        if pane_info.len() <= 1 {
+            return;
+        }
+
+        for (idx, pane) in pane_info.iter().enumerate() {
+            let label = format!(
+                " {}:{} ",
+                pane.pane_index + 1,
+                Self::shorten_pane_title(&pane.title)
+            );
+            let pane_line = parse_status_text(&label, default_attrs.clone());
+            let width = pane_line.len();
+            items.push(TabEntry {
+                item: TabBarItem::PaneStatus {
+                    pane_id: pane.pane_id,
+                    active: pane.is_active,
+                },
+                title: pane_line.clone(),
+                x: *x,
+                width,
+            });
+            line.append_line(pane_line, SEQ_ZERO);
+            *x += width;
+
+            if idx + 1 < pane_info.len() {
+                let sep = parse_status_text(" ", default_attrs.clone());
+                line.append_line(sep, SEQ_ZERO);
+                *x += 1;
+            }
+        }
+    }
+
     /// Build a new tab bar from the current state
     /// mouse_x is some if the mouse is on the same row as the tab bar.
     /// title_width is the total number of cell columns in the window.
@@ -338,7 +442,9 @@ impl TabBarState {
         colors: Option<&TabBarColors>,
         config: &ConfigHandle,
         left_status: &str,
+        center_status: &str,
         right_status: &str,
+        content_mode: TabBarContentMode,
     ) -> Self {
         let colors = colors.cloned().unwrap_or_else(TabBarColors::default);
 
@@ -377,31 +483,39 @@ impl TabBarState {
 
         let mut active_tab_no = 0;
 
-        let tab_titles: Vec<TitleText> = if config.show_tabs_in_tab_bar {
-            tab_info
-                .iter()
-                .map(|tab| {
-                    if tab.is_active {
-                        active_tab_no = tab.tab_index;
-                    }
-                    compute_tab_title(
-                        tab,
-                        tab_info,
-                        pane_info,
-                        config,
-                        false,
-                        config.tab_max_width,
-                    )
-                })
-                .collect()
-        } else {
-            vec![]
-        };
+        let tab_titles: Vec<TitleText> =
+            if matches!(content_mode, TabBarContentMode::Full) && config.show_tabs_in_tab_bar {
+                tab_info
+                    .iter()
+                    .map(|tab| {
+                        if tab.is_active {
+                            active_tab_no = tab.tab_index;
+                        }
+                        compute_tab_title(
+                            tab,
+                            tab_info,
+                            pane_info,
+                            config,
+                            false,
+                            config.tab_max_width,
+                        )
+                    })
+                    .collect()
+            } else {
+                vec![]
+            };
         let titles_len: usize = tab_titles.iter().map(|s| s.len).sum();
         let number_of_tabs = tab_titles.len();
 
+        let new_tab_len = if matches!(content_mode, TabBarContentMode::Full)
+            && config.show_new_tab_button_in_tab_bar
+        {
+            new_tab.len()
+        } else {
+            0
+        };
         let available_cells =
-            title_width.saturating_sub(number_of_tabs.saturating_sub(1) + new_tab.len());
+            title_width.saturating_sub(number_of_tabs.saturating_sub(1) + new_tab_len);
         let tab_width_max = if config.use_fancy_tab_bar || available_cells >= titles_len {
             // We can render each title with its full width
             usize::max_value()
@@ -422,7 +536,8 @@ impl TabBarState {
                 .clone(),
         );
 
-        if use_integrated_title_buttons
+        if matches!(content_mode, TabBarContentMode::Full)
+            && use_integrated_title_buttons
             && config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
             && config.use_fancy_tab_bar == false
             && config.tab_bar_at_bottom == false
@@ -433,7 +548,8 @@ impl TabBarState {
             }
         }
 
-        if use_integrated_title_buttons
+        if matches!(content_mode, TabBarContentMode::Full)
+            && use_integrated_title_buttons
             && config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
             && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Left
         {
@@ -450,6 +566,25 @@ impl TabBarState {
             });
             x += left_status_line.len();
             line.append_line(left_status_line, SEQ_ZERO);
+        }
+
+        let mut deferred_center_status = None;
+        if center_status.is_empty() {
+            // nothing
+        } else if matches!(content_mode, TabBarContentMode::StatusOnly) {
+            deferred_center_status = Some(center_status.to_string());
+        } else {
+            let center_status_line = parse_status_text(center_status, black_cell.attrs().clone());
+            if center_status_line.len() > 0 {
+                items.push(TabEntry {
+                    item: TabBarItem::CenterStatus,
+                    title: center_status_line.clone(),
+                    x,
+                    width: center_status_line.len(),
+                });
+                x += center_status_line.len();
+                line.append_line(center_status_line, SEQ_ZERO);
+            }
         }
 
         for (tab_idx, tab_title) in tab_titles.iter().enumerate() {
@@ -506,29 +641,40 @@ impl TabBarState {
             x += width;
         }
 
-        // New tab button
-        if config.show_new_tab_button_in_tab_bar {
-            let hover = is_tab_hover(mouse_x, x, new_tab_hover.len());
+        if matches!(content_mode, TabBarContentMode::Full) {
+            Self::append_center_pane_status(
+                &mut x,
+                pane_info,
+                &mut items,
+                &mut line,
+                black_cell.attrs(),
+            );
 
-            let new_tab_button = if hover { &new_tab_hover } else { &new_tab };
+            // New tab button
+            if config.show_new_tab_button_in_tab_bar {
+                let hover = is_tab_hover(mouse_x, x, new_tab_hover.len());
 
-            let button_start = x;
-            let width = new_tab_button.len();
+                let new_tab_button = if hover { &new_tab_hover } else { &new_tab };
 
-            line.append_line(new_tab_button.clone(), SEQ_ZERO);
+                let button_start = x;
+                let width = new_tab_button.len();
 
-            items.push(TabEntry {
-                item: TabBarItem::NewTabButton,
-                title: new_tab_button.clone(),
-                x: button_start,
-                width,
-            });
+                line.append_line(new_tab_button.clone(), SEQ_ZERO);
 
-            x += width;
+                items.push(TabEntry {
+                    item: TabBarItem::NewTabButton,
+                    title: new_tab_button.clone(),
+                    x: button_start,
+                    width,
+                });
+
+                x += width;
+            }
         }
 
         // Reserve place for integrated title buttons
-        let title_width = if use_integrated_title_buttons
+        let title_width = if matches!(content_mode, TabBarContentMode::Full)
+            && use_integrated_title_buttons
             && config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
             && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
         {
@@ -576,26 +722,70 @@ impl TabBarState {
             title_width
         };
 
-        let status_space_available = title_width.saturating_sub(x);
+        if let Some(center_status) = deferred_center_status {
+            let mut right_status_line = parse_status_text(right_status, black_cell.attrs().clone());
+            let right_status_len = right_status_line.len();
+            let center_space_available = title_width.saturating_sub(x + right_status_len);
 
-        let mut right_status_line = parse_status_text(right_status, black_cell.attrs().clone());
-        items.push(TabEntry {
-            item: TabBarItem::RightStatus,
-            title: right_status_line.clone(),
-            x,
-            width: status_space_available,
-        });
+            let mut center_status_line =
+                parse_status_text(&center_status, black_cell.attrs().clone());
+            if center_status_line.len() > center_space_available {
+                center_status_line.resize(center_space_available, SEQ_ZERO);
+            }
+            while center_status_line.len() < center_space_available {
+                center_status_line.insert_cell(
+                    center_status_line.len(),
+                    black_cell.clone(),
+                    center_space_available,
+                    SEQ_ZERO,
+                );
+            }
+            if center_status_line.len() > 0 {
+                items.push(TabEntry {
+                    item: TabBarItem::CenterStatus,
+                    title: center_status_line.clone(),
+                    x,
+                    width: center_status_line.len(),
+                });
+                x += center_status_line.len();
+                line.append_line(center_status_line, SEQ_ZERO);
+            }
 
-        while right_status_line.len() > status_space_available {
-            right_status_line.remove_cell(0, SEQ_ZERO);
+            let status_space_available = title_width.saturating_sub(x);
+            items.push(TabEntry {
+                item: TabBarItem::RightStatus,
+                title: right_status_line.clone(),
+                x,
+                width: status_space_available,
+            });
+            while right_status_line.len() > status_space_available {
+                right_status_line.remove_cell(0, SEQ_ZERO);
+            }
+            line.append_line(right_status_line.clone(), SEQ_ZERO);
+        } else {
+            let status_space_available = title_width.saturating_sub(x);
+
+            let mut right_status_line = parse_status_text(right_status, black_cell.attrs().clone());
+            items.push(TabEntry {
+                item: TabBarItem::RightStatus,
+                title: right_status_line.clone(),
+                x,
+                width: status_space_available,
+            });
+
+            while right_status_line.len() > status_space_available {
+                right_status_line.remove_cell(0, SEQ_ZERO);
+            }
+
+            line.append_line(right_status_line.clone(), SEQ_ZERO);
         }
-
-        line.append_line(right_status_line, SEQ_ZERO);
+        // Right status remains separate; pane chips are formal center items.
         while line.len() < title_width {
             line.insert_cell(x, black_cell.clone(), title_width, SEQ_ZERO);
         }
 
-        if use_integrated_title_buttons
+        if matches!(content_mode, TabBarContentMode::Full)
+            && use_integrated_title_buttons
             && config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
             && config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
         {

@@ -62,17 +62,14 @@ impl crate::TermWindow {
 
         let (padding_left, padding_top) = self.padding_left_top();
 
-        let tab_bar_height = if self.show_tab_bar {
+        let _tab_bar_height = if self.show_tab_bar {
             self.tab_bar_pixel_height()
                 .context("tab_bar_pixel_height")?
         } else {
             0.
         };
-        let (top_bar_height, bottom_bar_height) = if self.config.tab_bar_at_bottom {
-            (0.0, tab_bar_height)
-        } else {
-            (tab_bar_height, 0.0)
-        };
+        let top_bar_height = self.top_bar_pixel_height();
+        let bottom_bar_height = self.bottom_bar_pixel_height();
 
         let border = self.get_os_border();
         let top_pixel_y = top_bar_height + padding_top + border.top.get() as f32;
@@ -588,16 +585,12 @@ impl crate::TermWindow {
         let cell_width = self.render_metrics.cell_size.width as f32;
         let cell_height = self.render_metrics.cell_size.height as f32;
         let (padding_left, padding_top) = self.padding_left_top();
-        let tab_bar_height = if self.show_tab_bar {
+        let _tab_bar_height = if self.show_tab_bar {
             self.tab_bar_pixel_height()?
         } else {
             0.
         };
-        let (top_bar_height, _bottom_bar_height) = if self.config.tab_bar_at_bottom {
-            (0.0, tab_bar_height)
-        } else {
-            (tab_bar_height, 0.0)
-        };
+        let top_bar_height = self.top_bar_pixel_height();
 
         let border = self.get_os_border();
         let top_pixel_y = top_bar_height + padding_top + border.top.get() as f32;

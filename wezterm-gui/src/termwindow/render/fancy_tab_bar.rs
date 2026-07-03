@@ -53,13 +53,18 @@ const PLUS_BUTTON: &[Poly] = &[
 impl crate::TermWindow {
     pub fn invalidate_fancy_tab_bar(&mut self) {
         self.fancy_tab_bar.take();
+        self.fancy_secondary_tab_bar.take();
     }
 
-    pub fn build_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<ComputedElement> {
+    fn build_fancy_bar(
+        &self,
+        palette: &ColorPalette,
+        items: &[TabEntry],
+        at_bottom: bool,
+    ) -> anyhow::Result<ComputedElement> {
         let tab_bar_height = self.tab_bar_pixel_height()?;
         let font = self.fonts.title_font()?;
         let metrics = RenderMetrics::with_font_metrics(&font.metrics());
-        let items = self.tab_bar.items();
         let colors = self
             .config
             .colors
@@ -70,6 +75,7 @@ impl crate::TermWindow {
 
         let mut left_status = vec![];
         let mut left_eles = vec![];
+        let mut center_eles = vec![];
         let mut right_eles = vec![];
         let bar_colors = ElementColors {
             border: BorderColor::default(),
@@ -112,7 +118,7 @@ impl crate::TermWindow {
             let active_tab = colors.active_tab();
 
             match item.item {
-                TabBarItem::RightStatus | TabBarItem::LeftStatus | TabBarItem::None => element
+                TabBarItem::LeftStatus => element
                     .item_type(UIItemType::TabBar(TabBarItem::None))
                     .line_height(Some(1.75))
                     .margin(BoxDimension {
@@ -129,6 +135,88 @@ impl crate::TermWindow {
                     })
                     .border(BoxDimension::new(Dimension::Pixels(0.)))
                     .colors(bar_colors.clone()),
+                TabBarItem::RightStatus => element
+                    .item_type(UIItemType::TabBar(TabBarItem::None))
+                    .line_height(Some(1.75))
+                    .float(Float::Right)
+                    .margin(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.0),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.5),
+                        top: Dimension::Cells(0.),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .border(BoxDimension::new(Dimension::Pixels(0.)))
+                    .colors(bar_colors.clone()),
+                TabBarItem::PaneStatus { active, .. } => element
+                    .item_type(UIItemType::TabBar(item.item))
+                    .line_height(Some(1.75))
+                    .margin(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.0),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.5),
+                        right: Dimension::Cells(0.5),
+                        top: Dimension::Cells(0.),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .border(BoxDimension::new(Dimension::Pixels(1.0)))
+                    .colors(if active {
+                        ElementColors {
+                            border: BorderColor::new(active_tab.bg_color.to_linear()),
+                            bg: active_tab.bg_color.to_linear().into(),
+                            text: active_tab.fg_color.to_linear().into(),
+                        }
+                    } else {
+                        ElementColors {
+                            border: BorderColor::new(colors.inactive_tab().bg_color.to_linear()),
+                            bg: colors.inactive_tab().bg_color.to_linear().into(),
+                            text: colors.inactive_tab().fg_color.to_linear().into(),
+                        }
+                    })
+                    .hover_colors(Some(ElementColors {
+                        border: BorderColor::new(colors.inactive_tab_hover().bg_color.to_linear()),
+                        bg: colors.inactive_tab_hover().bg_color.to_linear().into(),
+                        text: colors.inactive_tab_hover().fg_color.to_linear().into(),
+                    })),
+                TabBarItem::CenterStatus => element
+                    .item_type(UIItemType::TabBar(TabBarItem::None))
+                    .line_height(Some(1.75))
+                    .display(DisplayType::Block)
+                    .margin(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.0),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .padding(BoxDimension {
+                        left: Dimension::Cells(0.),
+                        right: Dimension::Cells(0.),
+                        top: Dimension::Cells(0.),
+                        bottom: Dimension::Cells(0.),
+                    })
+                    .border(BoxDimension::new(Dimension::Pixels(0.)))
+                    .colors(ElementColors {
+                        border: BorderColor::new(colors.inactive_tab().bg_color.to_linear()),
+                        bg: colors.inactive_tab().bg_color.to_linear().into(),
+                        text: colors.inactive_tab().fg_color.to_linear().into(),
+                    })
+                    .hover_colors(Some(ElementColors {
+                        border: BorderColor::new(colors.inactive_tab_hover().bg_color.to_linear()),
+                        bg: colors.inactive_tab_hover().bg_color.to_linear().into(),
+                        text: colors.inactive_tab_hover().fg_color.to_linear().into(),
+                    })),
+                TabBarItem::None => {
+                    unreachable!("status items are handled via TabBarZone")
+                }
                 TabBarItem::NewTabButton => Element::new(
                     &font,
                     ElementContent::Poly {
@@ -307,6 +395,8 @@ impl crate::TermWindow {
             - (1.5 * metrics.cell_size.width as f32))
             .max(0.);
 
+        let status_only_layout = num_tabs == 0.;
+
         // Reserve space for the native titlebar buttons
         if self
             .config
@@ -328,6 +418,7 @@ impl crate::TermWindow {
         for item in items {
             match item.item {
                 TabBarItem::LeftStatus => left_status.push(item_to_elem(item)),
+                TabBarItem::CenterStatus => center_eles.push(item_to_elem(item)),
                 TabBarItem::None | TabBarItem::RightStatus => right_eles.push(item_to_elem(item)),
                 TabBarItem::WindowButton(_) => {
                     if self.config.integrated_title_button_alignment
@@ -356,6 +447,33 @@ impl crate::TermWindow {
                 _ => left_eles.push(item_to_elem(item)),
             }
         }
+
+        let left_zone_width = items
+            .iter()
+            .filter(|item| matches!(item.item, TabBarItem::LeftStatus))
+            .map(|item| item.width() as f32 * metrics.cell_size.width as f32)
+            .sum::<f32>();
+        let center_zone_width = items
+            .iter()
+            .find(|item| matches!(item.item, TabBarItem::CenterStatus))
+            .map(|item| item.width() as f32 * metrics.cell_size.width as f32)
+            .unwrap_or(0.0);
+        let right_zone_width = items
+            .iter()
+            .find(|item| matches!(item.item, TabBarItem::RightStatus))
+            .map(|item| item.width() as f32 * metrics.cell_size.width as f32)
+            .unwrap_or(0.0);
+        let available_status_width =
+            (self.dimensions.pixel_width as f32 - left_zone_width - right_zone_width).max(0.0);
+        let fill_entire_status_width =
+            status_only_layout && left_zone_width == 0.0 && right_zone_width == 0.0;
+        let center_zone_width = if fill_entire_status_width {
+            self.dimensions.pixel_width as f32
+        } else if status_only_layout {
+            center_zone_width.min(available_status_width)
+        } else {
+            center_zone_width
+        };
 
         let mut children = vec![];
 
@@ -402,11 +520,30 @@ impl crate::TermWindow {
                 })
                 .zindex(1),
         );
-        children.push(
+        if !center_eles.is_empty() {
+            let center = Element::new(&font, ElementContent::Children(center_eles))
+                .vertical_align(VerticalAlign::Bottom)
+                .colors(bar_colors.clone());
+            children.push(if status_only_layout {
+                center
+                    .min_width(Some(Dimension::Pixels(center_zone_width)))
+                    .max_width(Some(Dimension::Pixels(center_zone_width)))
+            } else {
+                center.min_width(Some(Dimension::Percent(1.)))
+            });
+        }
+        children.push(if status_only_layout {
+            Element::new(&font, ElementContent::Children(right_eles))
+                .vertical_align(VerticalAlign::Bottom)
+                .colors(bar_colors.clone())
+                .float(Float::Right)
+                .min_width(Some(Dimension::Pixels(right_zone_width)))
+                .max_width(Some(Dimension::Pixels(right_zone_width)))
+        } else {
             Element::new(&font, ElementContent::Children(right_eles))
                 .colors(bar_colors.clone())
-                .float(Float::Right),
-        );
+                .float(Float::Right)
+        });
 
         let content = ElementContent::Children(children);
 
@@ -447,7 +584,7 @@ impl crate::TermWindow {
 
         computed.translate(euclid::vec2(
             0.,
-            if self.config.tab_bar_at_bottom {
+            if at_bottom {
                 self.dimensions.pixel_height as f32
                     - (computed.bounds.height() + border.bottom.get() as f32)
             } else {
@@ -458,16 +595,44 @@ impl crate::TermWindow {
         Ok(computed)
     }
 
+    pub fn build_fancy_tab_bar(&self, palette: &ColorPalette) -> anyhow::Result<ComputedElement> {
+        self.build_fancy_bar(palette, self.tab_bar.items(), self.config.tab_bar_at_bottom)
+    }
+
+    pub fn build_fancy_secondary_tab_bar(
+        &self,
+        palette: &ColorPalette,
+    ) -> anyhow::Result<ComputedElement> {
+        self.build_fancy_bar(
+            palette,
+            self.secondary_tab_bar.items(),
+            !self.config.tab_bar_at_bottom,
+        )
+    }
+
+    fn paint_fancy_bar(&self, computed: &ComputedElement) -> anyhow::Result<Vec<UIItem>> {
+        let ui_items = computed.ui_items();
+
+        let gl_state = self.render_state.as_ref().unwrap();
+        self.render_element(computed, gl_state, None)?;
+
+        Ok(ui_items)
+    }
+
     pub fn paint_fancy_tab_bar(&self) -> anyhow::Result<Vec<UIItem>> {
         let computed = self.fancy_tab_bar.as_ref().ok_or_else(|| {
             anyhow::anyhow!("paint_fancy_tab_bar called but fancy_tab_bar is None")
         })?;
-        let ui_items = computed.ui_items();
+        self.paint_fancy_bar(computed)
+    }
 
-        let gl_state = self.render_state.as_ref().unwrap();
-        self.render_element(&computed, gl_state, None)?;
-
-        Ok(ui_items)
+    pub fn paint_fancy_secondary_tab_bar(&self) -> anyhow::Result<Vec<UIItem>> {
+        let computed = self.fancy_secondary_tab_bar.as_ref().ok_or_else(|| {
+            anyhow::anyhow!(
+                "paint_fancy_secondary_tab_bar called but fancy_secondary_tab_bar is None"
+            )
+        })?;
+        self.paint_fancy_bar(computed)
     }
 }
 

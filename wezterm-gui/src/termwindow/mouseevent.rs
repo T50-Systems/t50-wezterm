@@ -1,4 +1,4 @@
-use crate::tabbar::TabBarItem;
+use crate::tabbar::{TabBarItem, TabBarZone};
 use crate::termwindow::{
     GuiWin, MouseCapture, PositionedSplit, ScrollHit, TermWindowNotif, UIItem, UIItemType, TMB,
 };
@@ -69,11 +69,7 @@ impl super::TermWindow {
 
         let border = self.get_os_border();
 
-        let first_line_offset = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
-            self.tab_bar_pixel_height().unwrap_or(0.) as isize
-        } else {
-            0
-        } + border.top.get() as isize;
+        let first_line_offset = self.top_bar_pixel_height() as isize + border.top.get() as isize;
 
         let (padding_left, padding_top) = self.padding_left_top();
 
@@ -295,16 +291,8 @@ impl super::TermWindow {
         let dims = pane.get_dimensions();
         let current_viewport = self.get_viewport(pane.pane_id());
 
-        let tab_bar_height = if self.show_tab_bar {
-            self.tab_bar_pixel_height().unwrap_or(0.)
-        } else {
-            0.
-        };
-        let (top_bar_height, bottom_bar_height) = if self.config.tab_bar_at_bottom {
-            (0.0, tab_bar_height)
-        } else {
-            (tab_bar_height, 0.0)
-        };
+        let top_bar_height = self.top_bar_pixel_height();
+        let bottom_bar_height = self.bottom_bar_pixel_height();
 
         let border = self.get_os_border();
         let y_offset = top_bar_height + border.top.get() as f32;
@@ -464,10 +452,16 @@ impl super::TermWindow {
                 TabBarItem::Tab { tab_idx, .. } => {
                     self.activate_tab(tab_idx as isize).ok();
                 }
+                TabBarItem::PaneStatus { pane_id, .. } => {
+                    Mux::get().focus_pane_and_containing_tab(pane_id).ok();
+                }
                 TabBarItem::NewTabButton { .. } => {
                     self.do_new_tab_button_click(MousePress::Left);
                 }
-                TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {
+                TabBarItem::CenterStatus
+                | TabBarItem::None
+                | TabBarItem::LeftStatus
+                | TabBarItem::RightStatus => {
                     let maximized = self
                         .window_state
                         .intersects(WindowState::MAXIMIZED | WindowState::FULL_SCREEN);
@@ -517,10 +511,8 @@ impl super::TermWindow {
                 TabBarItem::NewTabButton { .. } => {
                     self.do_new_tab_button_click(MousePress::Middle);
                 }
-                TabBarItem::None
-                | TabBarItem::LeftStatus
-                | TabBarItem::RightStatus
-                | TabBarItem::WindowButton(_) => {}
+                TabBarItem::LeftStatus | TabBarItem::CenterStatus | TabBarItem::RightStatus => {}
+                TabBarItem::None | TabBarItem::PaneStatus { .. } | TabBarItem::WindowButton(_) => {}
             },
             WMEK::Press(MousePress::Right) => match item {
                 TabBarItem::Tab { .. } => {
@@ -529,28 +521,34 @@ impl super::TermWindow {
                 TabBarItem::NewTabButton { .. } => {
                     self.do_new_tab_button_click(MousePress::Right);
                 }
-                TabBarItem::None
-                | TabBarItem::LeftStatus
-                | TabBarItem::RightStatus
-                | TabBarItem::WindowButton(_) => {}
+                TabBarItem::LeftStatus | TabBarItem::CenterStatus | TabBarItem::RightStatus => {}
+                TabBarItem::None | TabBarItem::PaneStatus { .. } | TabBarItem::WindowButton(_) => {}
             },
-            WMEK::Move => match item {
-                TabBarItem::None | TabBarItem::LeftStatus | TabBarItem::RightStatus => {
+            WMEK::Move => match item.zone() {
+                TabBarZone::Left | TabBarZone::Right => {
                     context.set_window_drag_position(event.screen_coords);
                 }
-                TabBarItem::WindowButton(window::IntegratedTitleButton::Maximize) => {
-                    let item = self.last_ui_item.clone().unwrap();
-                    let bounds: ::window::ScreenRect = euclid::rect(
-                        item.x as isize - (event.coords.x as isize - event.screen_coords.x),
-                        item.y as isize - (event.coords.y as isize - event.screen_coords.y),
-                        item.width as isize,
-                        item.height as isize,
-                    );
-                    context.set_maximize_button_position(bounds);
-                }
-                TabBarItem::WindowButton(_)
-                | TabBarItem::Tab { .. }
-                | TabBarItem::NewTabButton { .. } => {}
+                TabBarZone::Center => match item {
+                    TabBarItem::PaneStatus { .. } => {
+                        context.set_cursor(Some(MouseCursor::Hand));
+                    }
+                    TabBarItem::WindowButton(window::IntegratedTitleButton::Maximize) => {
+                        let item = self.last_ui_item.clone().unwrap();
+                        let bounds: ::window::ScreenRect = euclid::rect(
+                            item.x as isize - (event.coords.x as isize - event.screen_coords.x),
+                            item.y as isize - (event.coords.y as isize - event.screen_coords.y),
+                            item.width as isize,
+                            item.height as isize,
+                        );
+                        context.set_maximize_button_position(bounds);
+                    }
+                    TabBarItem::None
+                    | TabBarItem::CenterStatus
+                    | TabBarItem::WindowButton(_)
+                    | TabBarItem::Tab { .. }
+                    | TabBarItem::NewTabButton { .. } => {}
+                    TabBarItem::LeftStatus | TabBarItem::RightStatus => unreachable!(),
+                },
             },
             WMEK::VertWheel(n) => {
                 if self.config.mouse_wheel_scrolls_tabs {

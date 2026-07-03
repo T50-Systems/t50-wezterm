@@ -375,11 +375,7 @@ impl crate::TermWindow {
             - self.terminal_size.pixel_height as f32
             - padding_top
             - padding_bottom
-            - if self.show_tab_bar {
-                self.tab_bar_pixel_height().unwrap_or(0.)
-            } else {
-                0.
-            };
+            - self.total_bar_pixel_height();
         let left_gap = match self.config.window_content_alignment.horizontal {
             HorizontalWindowContentAlignment::Left => 0.,
             HorizontalWindowContentAlignment::Center => (horizontal_gap / 2.).round(),

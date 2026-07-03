@@ -163,11 +163,7 @@ impl super::TermWindow {
 
         let config = &self.config;
 
-        let tab_bar_height = if self.show_tab_bar {
-            self.tab_bar_pixel_height().unwrap_or(0.)
-        } else {
-            0.
-        };
+        let tab_bar_height = self.total_bar_pixel_height();
 
         let border = self.get_os_border();
 
@@ -489,11 +485,12 @@ impl super::TermWindow {
         };
 
         let show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
-        let tab_bar_height = if show_tab_bar {
-            self.tab_bar_pixel_height()? as usize
+        let tab_bar_count = if show_tab_bar {
+            1 + usize::from(config.enable_secondary_bar)
         } else {
             0
         };
+        let tab_bar_height = self.tab_bar_pixel_height()? as usize * tab_bar_count;
 
         let h_context = DimensionContext {
             dpi: self.dimensions.dpi as f32,

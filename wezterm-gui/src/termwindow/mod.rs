@@ -14,7 +14,7 @@ use crate::scripting::guiwin::GuiWin;
 use crate::scrollbar::*;
 use crate::selection::Selection;
 use crate::shapecache::*;
-use crate::tabbar::{TabBarItem, TabBarState};
+use crate::tabbar::{TabBarContentMode, TabBarItem, TabBarState};
 use crate::termwindow::background::{
     load_background_image, reload_background_image, LoadedBackgroundLayer,
 };
@@ -124,6 +124,11 @@ pub enum TermWindowNotif {
     },
     SetLeftStatus(String),
     SetRightStatus(String),
+    SetSecondaryBar {
+        left: String,
+        center: String,
+        right: String,
+    },
     GetDimensions(Sender<(Dimensions, WindowState)>),
     GetSelectionForPane {
         pane_id: PaneId,
@@ -390,9 +395,14 @@ pub struct TermWindow {
     show_tab_bar: bool,
     show_scroll_bar: bool,
     tab_bar: TabBarState,
+    secondary_tab_bar: TabBarState,
     fancy_tab_bar: Option<box_model::ComputedElement>,
+    fancy_secondary_tab_bar: Option<box_model::ComputedElement>,
     pub right_status: String,
     pub left_status: String,
+    pub secondary_right_status: String,
+    pub secondary_center_status: String,
+    pub secondary_left_status: String,
     last_ui_item: Option<UIItem>,
     /// Tracks whether the current mouse-down event is part of click-focus.
     /// If so, we ignore mouse events until released
@@ -604,11 +614,14 @@ impl TermWindow {
         // Initially we have only a single tab, so take that into account
         // for the tab bar state.
         let show_tab_bar = config.enable_tab_bar && !config.hide_tab_bar_if_only_one_tab;
-        let tab_bar_height = if show_tab_bar {
-            Self::tab_bar_pixel_height_impl(&config, &fontconfig, &render_metrics)? as usize
+        let tab_bar_count = if show_tab_bar {
+            1 + usize::from(config.enable_secondary_bar)
         } else {
             0
         };
+        let tab_bar_height = Self::tab_bar_pixel_height_impl(&config, &fontconfig, &render_metrics)?
+            as usize
+            * tab_bar_count;
 
         let terminal_size = TerminalSize {
             rows: physical_rows,
@@ -711,9 +724,14 @@ impl TermWindow {
             show_tab_bar,
             show_scroll_bar: config.enable_scroll_bar,
             tab_bar: TabBarState::default(),
+            secondary_tab_bar: TabBarState::default(),
             fancy_tab_bar: None,
+            fancy_secondary_tab_bar: None,
             right_status: String::new(),
             left_status: String::new(),
+            secondary_right_status: String::new(),
+            secondary_center_status: String::new(),
+            secondary_left_status: String::new(),
             last_mouse_coords: (0, -1),
             window_drag_position: None,
             current_mouse_event: None,
@@ -1159,6 +1177,23 @@ impl TermWindow {
             TermWindowNotif::SetLeftStatus(status) => {
                 if status != self.left_status {
                     self.left_status = status;
+                    self.update_title_post_status();
+                } else {
+                    self.schedule_next_status_update();
+                }
+            }
+            TermWindowNotif::SetSecondaryBar {
+                left,
+                center,
+                right,
+            } => {
+                if left != self.secondary_left_status
+                    || center != self.secondary_center_status
+                    || right != self.secondary_right_status
+                {
+                    self.secondary_left_status = left;
+                    self.secondary_center_status = center;
+                    self.secondary_right_status = right;
                     self.update_title_post_status();
                 } else {
                     self.schedule_next_status_update();
@@ -1969,21 +2004,22 @@ impl TermWindow {
         let active_tab = tabs.iter().find(|t| t.is_active).cloned();
         let active_pane = panes.iter().find(|p| p.is_active).cloned();
 
-        let border = self.get_os_border();
         let tab_bar_height = self.tab_bar_pixel_height().unwrap_or(0.);
-        let tab_bar_y = if self.config.tab_bar_at_bottom {
-            ((self.dimensions.pixel_height as f32) - (tab_bar_height + border.bottom.get() as f32))
-                .max(0.)
-        } else {
-            border.top.get() as f32
-        };
-
-        let tab_bar_height = self.tab_bar_pixel_height().unwrap_or(0.);
+        let tab_bar_y = self.primary_tab_bar_y().unwrap_or_else(|_| {
+            let border = self.get_os_border();
+            if self.config.tab_bar_at_bottom {
+                ((self.dimensions.pixel_height as f32)
+                    - (tab_bar_height + border.bottom.get() as f32))
+                    .max(0.)
+            } else {
+                border.top.get() as f32
+            }
+        });
 
         let hovering_in_tab_bar = match &self.current_mouse_event {
             Some(event) => {
                 let mouse_y = event.coords.y as f32;
-                mouse_y >= tab_bar_y as f32 && mouse_y < tab_bar_y as f32 + tab_bar_height
+                mouse_y >= tab_bar_y && mouse_y < tab_bar_y + tab_bar_height
             }
             None => false,
         };
@@ -2000,10 +2036,29 @@ impl TermWindow {
             self.config.resolved_palette.tab_bar.as_ref(),
             &self.config,
             &self.left_status,
+            "",
             &self.right_status,
+            TabBarContentMode::Full,
         );
-        if new_tab_bar != self.tab_bar {
+        let new_secondary_tab_bar = if self.config.enable_secondary_bar && self.show_tab_bar {
+            TabBarState::new(
+                self.dimensions.pixel_width / self.render_metrics.cell_size.width as usize,
+                None,
+                &tabs,
+                &panes,
+                self.config.resolved_palette.tab_bar.as_ref(),
+                &self.config,
+                &self.secondary_left_status,
+                &self.secondary_center_status,
+                &self.secondary_right_status,
+                TabBarContentMode::StatusOnly,
+            )
+        } else {
+            TabBarState::default()
+        };
+        if new_tab_bar != self.tab_bar || new_secondary_tab_bar != self.secondary_tab_bar {
             self.tab_bar = new_tab_bar;
+            self.secondary_tab_bar = new_secondary_tab_bar;
             self.invalidate_fancy_tab_bar();
             self.invalidate_modal();
             if let Some(window) = self.window.as_ref() {
@@ -2113,11 +2168,7 @@ impl TermWindow {
         if let Some(win) = self.window.as_ref() {
             let cursor = pos.pane.get_cursor_position();
             let top = pos.pane.get_dimensions().physical_top;
-            let tab_bar_height = if self.show_tab_bar && !self.config.tab_bar_at_bottom {
-                self.tab_bar_pixel_height().unwrap()
-            } else {
-                0.0
-            };
+            let top_bar_height = self.top_bar_pixel_height();
             let (padding_left, padding_top) = self.padding_left_top();
 
             let r = Rect::new(
@@ -2126,7 +2177,7 @@ impl TermWindow {
                         .add(padding_left as isize),
                     ((cursor.y + pos.top as isize - top).max(0)
                         * self.render_metrics.cell_size.height)
-                        .add(tab_bar_height as isize)
+                        .add(top_bar_height as isize)
                         .add(padding_top as isize),
                 ),
                 self.render_metrics.cell_size,

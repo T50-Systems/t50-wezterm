@@ -482,6 +482,8 @@ pub struct Config {
     #[dynamic(default)]
     pub tab_bar_at_bottom: bool,
 
+    #[dynamic(default)]
+    pub enable_secondary_bar: bool,
     #[dynamic(default = "default_true")]
     pub mouse_wheel_scrolls_tabs: bool,
 

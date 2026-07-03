@@ -14,6 +14,14 @@ use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_toast_notification::ToastNotification;
 use window::{Connection, ConnectionOps, DeadKeyStatus, WindowOps, WindowState};
 
+#[derive(Debug, Clone, FromDynamic, ToDynamic)]
+struct SecondaryBarState {
+    left: String,
+    center: String,
+    right: String,
+}
+impl_lua_conversion_dynamic!(SecondaryBarState);
+
 #[derive(Clone)]
 pub struct GuiWin {
     pub mux_window_id: MuxWindowId,
@@ -102,6 +110,14 @@ impl UserData for GuiWin {
         });
         methods.add_method("set_left_status", |_, this, status: String| {
             this.window.notify(TermWindowNotif::SetLeftStatus(status));
+            Ok(())
+        });
+        methods.add_method("set_secondary_bar", |_, this, bar: SecondaryBarState| {
+            this.window.notify(TermWindowNotif::SetSecondaryBar {
+                left: bar.left,
+                center: bar.center,
+                right: bar.right,
+            });
             Ok(())
         });
         methods.add_async_method("get_dimensions", |_, this, _: ()| async move {
