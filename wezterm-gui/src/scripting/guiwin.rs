@@ -29,7 +29,9 @@ impl SecondaryBarState {
                 return Err(mlua::Error::FromLuaConversionError {
                     from: value.type_name(),
                     to: "SecondaryBarState",
-                    message: Some("expected table with optional left, center, and right fields".into()),
+                    message: Some(
+                        "expected table with optional left, center, and right fields".into(),
+                    ),
                 });
             }
         };
