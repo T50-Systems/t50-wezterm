@@ -34,8 +34,10 @@ EXCLUDED_FILES = {
     "wezterm-char-props/data/emoji-data.txt",
     "wezterm-char-props/data/emoji-variation-sequences.txt",
     "color-types/src/rgb.txt",
+    "bidi/src/bidi_class.rs",
     "config/src/scheme_data.rs",
     "wezterm-char-props/src/emoji_variation.rs",
+    "wezterm-char-props/src/widechar_width.rs",
     "wezterm-char-props/src/nerdfonts_data.rs",
     "wezterm-gui/src/unicode_names.rs",
 }
@@ -52,7 +54,6 @@ EXCLUDED_GLOBS = (
 
 # Temporary migration allowlist. Remove entries as each phase splits a file.
 TEMP_ALLOWED = {
-    "bidi/src/bidi_class.rs",
     "bintree/src/lib.rs",
     "ci/generate-docs.py",
     "ci/generate-workflows.py",
@@ -85,7 +86,6 @@ TEMP_ALLOWED = {
     "termwiz/src/widgets/layout.rs",
     "termwiz/src/widgets/mod.rs",
     "wezterm-cell/src/image.rs",
-    "wezterm-char-props/src/widechar_width.rs",
     "wezterm-client/src/client.rs",
     "wezterm-client/src/domain.rs",
     "wezterm-client/src/pane/clientpane.rs",
