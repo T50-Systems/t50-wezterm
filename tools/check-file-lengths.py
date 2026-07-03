@@ -59,7 +59,6 @@ TEMP_ALLOWED = {
     "ci/generate-workflows.py",
     "config/src/config.rs",
     "config/src/font.rs",
-    "config/src/keyassignment.rs",
     "config/src/lua.rs",
     "filedescriptor/src/unix.rs",
     "filedescriptor/src/windows.rs",
