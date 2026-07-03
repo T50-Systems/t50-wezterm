@@ -2,7 +2,11 @@
 
 <img height="128" alt="WezTerm Icon" src="https://raw.githubusercontent.com/wezterm/wezterm/main/assets/icon/wezterm-icon.svg" align="left"> *A GPU-accelerated cross-platform terminal emulator and multiplexer written by <a href="https://github.com/wez">@wez</a> and implemented in <a href="https://www.rust-lang.org/">Rust</a>*
 
-User facing docs and guide at: https://wezterm.org/
+User facing docs and guide at: <https://wezterm.org/>
+
+## T50 WezTerm fork
+
+This is my T50 WezTerm repository for tracking personal/T50 changes on top of upstream WezTerm, including pane label and secondary bar experiments.
 
 ![Screenshot](docs/screenshots/two.png)
 
@@ -10,7 +14,7 @@ User facing docs and guide at: https://wezterm.org/
 
 ## Installation
 
-https://wezterm.org/installation
+<https://wezterm.org/installation>
 
 ## Getting help
 
