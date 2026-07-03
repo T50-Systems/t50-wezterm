@@ -74,7 +74,6 @@ TEMP_ALLOWED = {
     "mux/src/tab.rs",
     "mux/src/termwiztermtab.rs",
     "mux/src/tmux_commands.rs",
-    "pty/src/cmdbuilder.rs",
     "term/src/screen.rs",
     "term/src/terminalstate/mod.rs",
     "term/src/terminalstate/performer.rs",
