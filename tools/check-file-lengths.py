@@ -89,7 +89,6 @@ TEMP_ALLOWED = {
     "termwiz/src/terminal/windows.rs",
     "termwiz/src/widgets/layout.rs",
     "termwiz/src/widgets/mod.rs",
-    "vtparse/src/lib.rs",
     "wezterm-cell/src/image.rs",
     "wezterm-cell/src/lib.rs",
     "wezterm-char-props/src/widechar_width.rs",
