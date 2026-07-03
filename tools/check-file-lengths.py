@@ -133,7 +133,6 @@ TEMP_ALLOWED = {
     "wezterm-ssh/src/sessioninner.rs",
     "wezterm-ssh/tests/e2e/sftp.rs",
     "wezterm-ssh/tests/sshd.rs",
-    "wezterm-surface/src/lib.rs",
     "wezterm-surface/src/line/line.rs",
     "wezterm-surface/src/line/test.rs",
     "wezterm/src/asciicast.rs",
