@@ -1161,3 +1161,51 @@ mod tab_bar_constructor_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod ui_item_geometry_tests {
+    use super::{TabBarItem, TabBarState, TabEntry};
+    use termwiz::surface::SEQ_ZERO;
+    use wezterm_term::Line;
+
+    fn tab_bar_with_pane_status() -> TabBarState {
+        TabBarState {
+            line: Line::with_width(0, SEQ_ZERO),
+            items: vec![TabEntry {
+                item: TabBarItem::PaneStatus {
+                    pane_id: 42,
+                    active: true,
+                },
+                title: Line::with_width(0, SEQ_ZERO),
+                x: 3,
+                width: 5,
+            }],
+        }
+    }
+
+    #[test]
+    fn compute_ui_items_preserves_pane_status_cell_geometry() {
+        let ui_items = tab_bar_with_pane_status().compute_ui_items(10, 20, 8);
+
+        assert_eq!(ui_items.len(), 1);
+        assert_eq!(ui_items[0].x, 24);
+        assert_eq!(ui_items[0].y, 10);
+        assert_eq!(ui_items[0].width, 40);
+        assert_eq!(ui_items[0].height, 20);
+        assert_eq!(
+            ui_items[0].item_type,
+            crate::termwindow::UIItemType::TabBar(TabBarItem::PaneStatus {
+                pane_id: 42,
+                active: true,
+            })
+        );
+    }
+
+    #[test]
+    fn compute_ui_items_uses_supplied_secondary_bar_y_coordinate() {
+        let secondary_y = 30;
+        let ui_items = tab_bar_with_pane_status().compute_ui_items(secondary_y, 20, 8);
+
+        assert_eq!(ui_items[0].y, secondary_y);
+    }
+}
