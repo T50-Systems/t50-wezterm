@@ -5,7 +5,7 @@ Target: raise the T50 pane-label / secondary-bar work from **medium maturity** t
 
 ## Goal
 
-Make the T50-specific UI additions stable enough for daily Windows use and future Fedora use without turning this fork into a full upstream-maintenance project.
+Make the T50-specific UI additions stable enough for daily Windows use. Fedora remains a future portability concern, but the active regression guard for this plan is Windows-only.
 
 The plan focuses on the custom surface area:
 
@@ -27,7 +27,7 @@ The work is considered 8.5/10 when:
 5. Hit-test coordinates are derived from the same geometry used by rendering.
 6. Lua API behavior is documented and covered by at least shape-level tests where practical.
 7. Default behavior remains unchanged when `enable_secondary_bar = false`.
-8. Tests cover Windows-stability-sensitive scenarios: 1 pane, 2 panes, 4 panes, tabbar top/bottom, fancy/non-fancy mode.
+8. Tests cover Windows-only stability scenarios for now: 1 pane, 2 panes, 4 panes, tabbar top/bottom, fancy/non-fancy mode, Windows config variants.
 9. Refactors are split into small commits where each commit has tests first or test updates first.
 10. No broad upstream merge is required to achieve the cleanup.
 
@@ -300,24 +300,20 @@ If full `wezterm-gui` tests are too slow locally, record that in the PR/commit n
 
 ### Manual smoke matrix
 
-Windows:
+Windows only for this plan:
 
-- stable config with `front_end = 'Software'`.
-- future config with secondary bar enabled.
+- stable Windows config with `front_end = 'Software'.
+- future Windows config with secondary bar enabled.
 - 1 pane, 2 panes, 4 panes.
 - horizontal and vertical splits.
 - tabbar top and bottom.
 - fancy and non-fancy tabbar.
 - close panes/tabs repeatedly.
 - resize window repeatedly.
+- sleep/resume once if practical.
+- run a noisy TUI/log output workload inside a pane.
 
-Future Fedora:
-
-- GNOME Wayland default.
-- XWayland fallback if Wayland is unstable.
-- fractional scaling if used.
-- large log output.
-- pane split/close cycle.
+Fedora/Wayland validation is intentionally deferred until that migration starts. Do not block this cleanup branch on Linux compositor behavior.
 
 ## Commit plan
 
