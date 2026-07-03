@@ -337,6 +337,117 @@ fn truncate_to_cell_width(text: &str, max_width: usize) -> String {
     result
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct TabWidthPolicy {
+    title_width: usize,
+    titles_len: usize,
+    number_of_tabs: usize,
+    new_tab_len: usize,
+    use_fancy_tab_bar: bool,
+    tab_max_width: usize,
+}
+
+impl TabWidthPolicy {
+    fn max_width(self) -> usize {
+        let available_cells = self
+            .title_width
+            .saturating_sub(self.number_of_tabs.saturating_sub(1) + self.new_tab_len);
+
+        if self.use_fancy_tab_bar || available_cells >= self.titles_len {
+            usize::MAX
+        } else {
+            available_cells / self.number_of_tabs
+        }
+        .min(self.tab_max_width)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct IntegratedTitleButtonReservation {
+    title_width: usize,
+    enabled: bool,
+    style: IntegratedTitleButtonStyle,
+    alignment: IntegratedTitleButtonAlignment,
+    hide_len: usize,
+    maximize_len: usize,
+    close_len: usize,
+}
+
+impl IntegratedTitleButtonReservation {
+    fn title_width_after_reservation(
+        self,
+        buttons: &[IntegratedTitleButton],
+        content_mode: TabBarContentMode,
+    ) -> usize {
+        if content_mode != TabBarContentMode::Full
+            || !self.enabled
+            || self.style == IntegratedTitleButtonStyle::MacOsNative
+            || self.alignment != IntegratedTitleButtonAlignment::Right
+        {
+            return self.title_width;
+        }
+
+        self.title_width.saturating_sub(
+            buttons
+                .iter()
+                .map(|button| self.width_for(*button))
+                .sum::<usize>(),
+        )
+    }
+
+    fn width_for(self, button: IntegratedTitleButton) -> usize {
+        match button {
+            IntegratedTitleButton::Hide => self.hide_len,
+            IntegratedTitleButton::Maximize => self.maximize_len,
+            IntegratedTitleButton::Close => self.close_len,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct StatusLineLayout {
+    title_width: usize,
+    current_x: usize,
+}
+
+impl StatusLineLayout {
+    fn right_space(self) -> usize {
+        self.title_width.saturating_sub(self.current_x)
+    }
+
+    fn center_space_before_right(self, right_status_len: usize) -> usize {
+        self.title_width
+            .saturating_sub(self.current_x + right_status_len)
+    }
+
+    fn trim_right_status(self, right_status_line: &mut Line) {
+        let status_space_available = self.right_space();
+        while right_status_line.len() > status_space_available {
+            right_status_line.remove_cell(0, SEQ_ZERO);
+        }
+    }
+
+    fn fit_center_status(
+        self,
+        center_status_line: &mut Line,
+        right_status_len: usize,
+        filler: &Cell,
+    ) {
+        let center_space_available = self.center_space_before_right(right_status_len);
+        if center_status_line.len() > center_space_available {
+            center_status_line.resize(center_space_available, SEQ_ZERO);
+        }
+        while center_status_line.len() < center_space_available {
+            center_status_line.insert_cell(
+                center_status_line.len(),
+                filler.clone(),
+                center_space_available,
+                SEQ_ZERO,
+            );
+        }
+    }
+}
+
 struct TabBarBuilder<'a> {
     title_width: usize,
     mouse_x: Option<usize>,
@@ -511,24 +622,21 @@ impl<'a> TabBarBuilder<'a> {
         config: &ConfigHandle,
         content_mode: TabBarContentMode,
     ) -> usize {
-        let titles_len: usize = tab_titles.iter().map(|s| s.len).sum();
-        let number_of_tabs = tab_titles.len();
-        let new_tab_len = if matches!(content_mode, TabBarContentMode::Full)
-            && config.show_new_tab_button_in_tab_bar
-        {
-            new_tab.len()
-        } else {
-            0
-        };
-        let available_cells =
-            title_width.saturating_sub(number_of_tabs.saturating_sub(1) + new_tab_len);
-
-        if config.use_fancy_tab_bar || available_cells >= titles_len {
-            usize::max_value()
-        } else {
-            available_cells / number_of_tabs
+        TabWidthPolicy {
+            title_width,
+            titles_len: tab_titles.iter().map(|s| s.len).sum(),
+            number_of_tabs: tab_titles.len(),
+            new_tab_len: if content_mode == TabBarContentMode::Full
+                && config.show_new_tab_button_in_tab_bar
+            {
+                new_tab.len()
+            } else {
+                0
+            },
+            use_fancy_tab_bar: config.use_fancy_tab_bar,
+            tab_max_width: config.tab_max_width,
         }
-        .min(config.tab_max_width)
+        .max_width()
     }
 
     fn reserve_native_left_title_button_space(&mut self) {
@@ -693,15 +801,6 @@ impl<'a> TabBarBuilder<'a> {
     }
 
     fn title_width_without_right_title_buttons(&self) -> usize {
-        if !(self.is_full()
-            && self.use_integrated_title_buttons
-            && self.config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
-            && self.config.integrated_title_button_alignment
-                == IntegratedTitleButtonAlignment::Right)
-        {
-            return self.title_width;
-        }
-
         let window_hide = parse_status_text(
             &self.config.tab_bar_style.window_hide,
             CellAttributes::default(),
@@ -727,24 +826,16 @@ impl<'a> TabBarBuilder<'a> {
             CellAttributes::default(),
         );
 
-        let hide_len = window_hide.len().max(window_hide_hover.len());
-        let maximize_len = window_maximize.len().max(window_maximize_hover.len());
-        let close_len = window_close.len().max(window_close_hover.len());
-        let width_to_reserve: usize = self
-            .config
-            .integrated_title_buttons
-            .iter()
-            .map(|button| {
-                use IntegratedTitleButton as Button;
-                match button {
-                    Button::Hide => hide_len,
-                    Button::Maximize => maximize_len,
-                    Button::Close => close_len,
-                }
-            })
-            .sum();
-
-        self.title_width.saturating_sub(width_to_reserve)
+        IntegratedTitleButtonReservation {
+            title_width: self.title_width,
+            enabled: self.use_integrated_title_buttons,
+            style: self.config.integrated_title_button_style,
+            alignment: self.config.integrated_title_button_alignment,
+            hide_len: window_hide.len().max(window_hide_hover.len()),
+            maximize_len: window_maximize.len().max(window_maximize_hover.len()),
+            close_len: window_close.len().max(window_close_hover.len()),
+        }
+        .title_width_after_reservation(&self.config.integrated_title_buttons, self.content_mode)
     }
 
     fn append_deferred_center_and_right_status(&mut self, title_width: usize) {
@@ -760,24 +851,17 @@ impl<'a> TabBarBuilder<'a> {
         title_width: usize,
         center_status: String,
     ) {
+        let layout = StatusLineLayout {
+            title_width,
+            current_x: self.x,
+        };
         let mut right_status_line =
             parse_status_text(self.right_status, self.black_cell.attrs().clone());
         let right_status_len = right_status_line.len();
-        let center_space_available = title_width.saturating_sub(self.x + right_status_len);
 
         let mut center_status_line =
             parse_status_text(&center_status, self.black_cell.attrs().clone());
-        if center_status_line.len() > center_space_available {
-            center_status_line.resize(center_space_available, SEQ_ZERO);
-        }
-        while center_status_line.len() < center_space_available {
-            center_status_line.insert_cell(
-                center_status_line.len(),
-                self.black_cell.clone(),
-                center_space_available,
-                SEQ_ZERO,
-            );
-        }
+        layout.fit_center_status(&mut center_status_line, right_status_len, &self.black_cell);
 
         if center_status_line.len() > 0 {
             self.items.push(TabEntry {
@@ -790,33 +874,35 @@ impl<'a> TabBarBuilder<'a> {
             self.line.append_line(center_status_line, SEQ_ZERO);
         }
 
-        let status_space_available = title_width.saturating_sub(self.x);
+        let layout = StatusLineLayout {
+            title_width,
+            current_x: self.x,
+        };
         self.items.push(TabEntry {
             item: TabBarItem::RightStatus,
             title: right_status_line.clone(),
             x: self.x,
-            width: status_space_available,
+            width: layout.right_space(),
         });
-        while right_status_line.len() > status_space_available {
-            right_status_line.remove_cell(0, SEQ_ZERO);
-        }
+        layout.trim_right_status(&mut right_status_line);
         self.line.append_line(right_status_line, SEQ_ZERO);
     }
 
     fn append_right_status(&mut self, title_width: usize) {
-        let status_space_available = title_width.saturating_sub(self.x);
+        let layout = StatusLineLayout {
+            title_width,
+            current_x: self.x,
+        };
         let mut right_status_line =
             parse_status_text(self.right_status, self.black_cell.attrs().clone());
         self.items.push(TabEntry {
             item: TabBarItem::RightStatus,
             title: right_status_line.clone(),
             x: self.x,
-            width: status_space_available,
+            width: layout.right_space(),
         });
 
-        while right_status_line.len() > status_space_available {
-            right_status_line.remove_cell(0, SEQ_ZERO);
-        }
+        layout.trim_right_status(&mut right_status_line);
         self.line.append_line(right_status_line, SEQ_ZERO);
     }
 
@@ -1251,6 +1337,103 @@ mod pane_label_tests {
 
         assert!(title.ends_with('…'));
         assert!(unicode_column_width(&title, None) <= 12);
+    }
+}
+
+#[cfg(test)]
+mod tab_bar_policy_tests {
+    use super::{
+        IntegratedTitleButtonReservation, StatusLineLayout, TabBarContentMode, TabWidthPolicy,
+    };
+    use termwiz::cell::{Cell, CellAttributes};
+    use termwiz::surface::SEQ_ZERO;
+    use wezterm_term::Line;
+    use window::{
+        IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle,
+    };
+
+    #[test]
+    fn tab_width_policy_uses_full_width_when_titles_fit() {
+        let policy = TabWidthPolicy {
+            title_width: 80,
+            titles_len: 20,
+            number_of_tabs: 3,
+            new_tab_len: 2,
+            use_fancy_tab_bar: false,
+            tab_max_width: 30,
+        };
+
+        assert_eq!(policy.max_width(), 30);
+    }
+
+    #[test]
+    fn tab_width_policy_balances_tabs_when_titles_do_not_fit() {
+        let policy = TabWidthPolicy {
+            title_width: 20,
+            titles_len: 100,
+            number_of_tabs: 3,
+            new_tab_len: 2,
+            use_fancy_tab_bar: false,
+            tab_max_width: 30,
+        };
+
+        assert_eq!(policy.max_width(), 5);
+    }
+
+    #[test]
+    fn right_title_button_reservation_only_applies_to_right_full_mode_buttons() {
+        let reservation = IntegratedTitleButtonReservation {
+            title_width: 80,
+            enabled: true,
+            style: IntegratedTitleButtonStyle::Windows,
+            alignment: IntegratedTitleButtonAlignment::Right,
+            hide_len: 2,
+            maximize_len: 3,
+            close_len: 4,
+        };
+
+        assert_eq!(
+            reservation.title_width_after_reservation(
+                &[IntegratedTitleButton::Hide, IntegratedTitleButton::Close],
+                TabBarContentMode::Full,
+            ),
+            74
+        );
+        assert_eq!(
+            reservation.title_width_after_reservation(
+                &[IntegratedTitleButton::Hide, IntegratedTitleButton::Close],
+                TabBarContentMode::StatusOnly,
+            ),
+            80
+        );
+    }
+
+    #[test]
+    fn status_line_layout_fits_center_before_right_status() {
+        let layout = StatusLineLayout {
+            title_width: 10,
+            current_x: 2,
+        };
+        let filler = Cell::blank_with_attrs(CellAttributes::blank());
+        let mut center = Line::from_text("CENTER", &CellAttributes::blank(), SEQ_ZERO, None);
+
+        layout.fit_center_status(&mut center, 3, &filler);
+
+        assert_eq!(center.len(), 5);
+    }
+
+    #[test]
+    fn status_line_layout_trims_right_status_from_left() {
+        let layout = StatusLineLayout {
+            title_width: 5,
+            current_x: 2,
+        };
+        let mut right = Line::from_text("RIGHT", &CellAttributes::blank(), SEQ_ZERO, None);
+
+        layout.trim_right_status(&mut right);
+
+        assert_eq!(right.len(), 3);
+        assert_eq!(right.as_str(), "GHT");
     }
 }
 
