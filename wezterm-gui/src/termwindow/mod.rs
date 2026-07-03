@@ -178,9 +178,45 @@ pub struct UIItem {
 impl UIItem {
     pub fn hit_test(&self, x: isize, y: isize) -> bool {
         x >= self.x as isize
-            && x <= (self.x + self.width) as isize
+            && x < (self.x + self.width) as isize
             && y >= self.y as isize
-            && y <= (self.y + self.height) as isize
+            && y < (self.y + self.height) as isize
+    }
+}
+
+#[cfg(test)]
+mod ui_item_hit_test_tests {
+    use super::{TabBarItem, UIItem, UIItemType};
+
+    fn tab_bar_item() -> UIItem {
+        UIItem {
+            x: 10,
+            y: 20,
+            width: 30,
+            height: 5,
+            item_type: UIItemType::TabBar(TabBarItem::PaneStatus {
+                pane_id: 7,
+                active: false,
+            }),
+        }
+    }
+
+    #[test]
+    fn hit_test_accepts_points_inside_half_open_bounds() {
+        let item = tab_bar_item();
+
+        assert!(item.hit_test(10, 20));
+        assert!(item.hit_test(39, 24));
+    }
+
+    #[test]
+    fn hit_test_rejects_points_just_outside_bounds() {
+        let item = tab_bar_item();
+
+        assert!(!item.hit_test(9, 20));
+        assert!(!item.hit_test(40, 20));
+        assert!(!item.hit_test(10, 19));
+        assert!(!item.hit_test(10, 25));
     }
 }
 
