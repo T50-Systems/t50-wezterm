@@ -365,42 +365,17 @@ impl TabWidthPolicy {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct IntegratedTitleButtonReservation {
     title_width: usize,
-    enabled: bool,
-    style: IntegratedTitleButtonStyle,
-    alignment: IntegratedTitleButtonAlignment,
-    hide_len: usize,
-    maximize_len: usize,
-    close_len: usize,
+    reserve: bool,
 }
 
 impl IntegratedTitleButtonReservation {
-    fn title_width_after_reservation(
-        self,
-        buttons: &[IntegratedTitleButton],
-        content_mode: TabBarContentMode,
-    ) -> usize {
-        if content_mode != TabBarContentMode::Full
-            || !self.enabled
-            || self.style == IntegratedTitleButtonStyle::MacOsNative
-            || self.alignment != IntegratedTitleButtonAlignment::Right
-        {
+    fn title_width_after_reservation(self, button_widths: &[usize]) -> usize {
+        if !self.reserve {
             return self.title_width;
         }
 
-        self.title_width.saturating_sub(
-            buttons
-                .iter()
-                .map(|button| self.width_for(*button))
-                .sum::<usize>(),
-        )
-    }
-
-    fn width_for(self, button: IntegratedTitleButton) -> usize {
-        match button {
-            IntegratedTitleButton::Hide => self.hide_len,
-            IntegratedTitleButton::Maximize => self.maximize_len,
-            IntegratedTitleButton::Close => self.close_len,
-        }
+        self.title_width
+            .saturating_sub(button_widths.iter().sum::<usize>())
     }
 }
 
@@ -446,12 +421,51 @@ impl StatusLineLayout {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct TabBarBuildOptions {
+    show_tabs: bool,
+    show_new_tab_button: bool,
+    use_fancy_tab_bar: bool,
+    tab_max_width: usize,
+    zero_based_indices: bool,
+    tab_bar_at_bottom: bool,
+    integrated_title_buttons_enabled: bool,
+    integrated_title_button_style: IntegratedTitleButtonStyle,
+    integrated_title_button_alignment: IntegratedTitleButtonAlignment,
+}
+
+impl TabBarBuildOptions {
+    fn from_config(config: &ConfigHandle) -> Self {
+        Self {
+            show_tabs: config.show_tabs_in_tab_bar,
+            show_new_tab_button: config.show_new_tab_button_in_tab_bar,
+            use_fancy_tab_bar: config.use_fancy_tab_bar,
+            tab_max_width: config.tab_max_width,
+            zero_based_indices: config.tab_and_split_indices_are_zero_based,
+            tab_bar_at_bottom: config.tab_bar_at_bottom,
+            integrated_title_buttons_enabled: config
+                .window_decorations
+                .contains(window::WindowDecorations::INTEGRATED_BUTTONS),
+            integrated_title_button_style: config.integrated_title_button_style,
+            integrated_title_button_alignment: config.integrated_title_button_alignment,
+        }
+    }
+
+    fn reserve_right_title_button_space(&self, content_mode: TabBarContentMode) -> bool {
+        content_mode == TabBarContentMode::Full
+            && self.integrated_title_buttons_enabled
+            && self.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
+            && self.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Right
+    }
+}
+
 struct TabBarBuilder<'a> {
     title_width: usize,
     mouse_x: Option<usize>,
     tab_info: &'a [TabInformation],
     pane_info: &'a [PaneInformation],
     config: &'a ConfigHandle,
+    options: TabBarBuildOptions,
     left_status: &'a str,
     center_status: &'a str,
     right_status: &'a str,
@@ -462,7 +476,6 @@ struct TabBarBuilder<'a> {
     inactive_cell_attrs: CellAttributes,
     new_tab: Line,
     new_tab_hover: Line,
-    use_integrated_title_buttons: bool,
     active_tab_no: usize,
     tab_titles: Vec<TitleText>,
     tab_width_max: usize,
@@ -486,6 +499,7 @@ impl<'a> TabBarBuilder<'a> {
         right_status: &'a str,
         content_mode: TabBarContentMode,
     ) -> Self {
+        let options = TabBarBuildOptions::from_config(config);
         let colors = colors.cloned().unwrap_or_else(TabBarColors::default);
         let active_cell_attrs = colors.active_tab().as_cell_attributes();
         let inactive_hover_attrs = colors.inactive_tab_hover().as_cell_attributes();
@@ -495,7 +509,7 @@ impl<'a> TabBarBuilder<'a> {
 
         let new_tab = parse_status_text(
             &config.tab_bar_style.new_tab,
-            if config.use_fancy_tab_bar {
+            if options.use_fancy_tab_bar {
                 CellAttributes::default()
             } else {
                 new_tab_attrs
@@ -503,7 +517,7 @@ impl<'a> TabBarBuilder<'a> {
         );
         let new_tab_hover = parse_status_text(
             &config.tab_bar_style.new_tab_hover,
-            if config.use_fancy_tab_bar {
+            if options.use_fancy_tab_bar {
                 CellAttributes::default()
             } else {
                 new_tab_hover_attrs
@@ -515,26 +529,24 @@ impl<'a> TabBarBuilder<'a> {
             tab_info,
             pane_info,
             config,
+            &options,
             content_mode,
             &mut active_tab_no,
         );
         let tab_width_max =
-            Self::tab_width_max(title_width, &tab_titles, &new_tab, config, content_mode);
+            Self::tab_width_max(title_width, &tab_titles, &new_tab, &options, content_mode);
         let black_cell = Cell::blank_with_attrs(
             CellAttributes::default()
                 .set_background(ColorSpec::TrueColor(*colors.background()))
                 .clone(),
         );
-        let use_integrated_title_buttons = config
-            .window_decorations
-            .contains(window::WindowDecorations::INTEGRATED_BUTTONS);
-
         Self {
             title_width,
             mouse_x,
             tab_info,
             pane_info,
             config,
+            options,
             left_status,
             center_status,
             right_status,
@@ -545,7 +557,6 @@ impl<'a> TabBarBuilder<'a> {
             inactive_cell_attrs,
             new_tab,
             new_tab_hover,
-            use_integrated_title_buttons,
             active_tab_no,
             tab_titles,
             tab_width_max,
@@ -588,10 +599,11 @@ impl<'a> TabBarBuilder<'a> {
         tab_info: &[TabInformation],
         pane_info: &[PaneInformation],
         config: &ConfigHandle,
+        options: &TabBarBuildOptions,
         content_mode: TabBarContentMode,
         active_tab_no: &mut usize,
     ) -> Vec<TitleText> {
-        if !matches!(content_mode, TabBarContentMode::Full) || !config.show_tabs_in_tab_bar {
+        if content_mode != TabBarContentMode::Full || !options.show_tabs {
             return vec![];
         }
 
@@ -607,7 +619,7 @@ impl<'a> TabBarBuilder<'a> {
                     pane_info,
                     config,
                     false,
-                    config.tab_max_width,
+                    options.tab_max_width,
                 )
             })
             .collect()
@@ -617,32 +629,30 @@ impl<'a> TabBarBuilder<'a> {
         title_width: usize,
         tab_titles: &[TitleText],
         new_tab: &Line,
-        config: &ConfigHandle,
+        options: &TabBarBuildOptions,
         content_mode: TabBarContentMode,
     ) -> usize {
         TabWidthPolicy {
             title_width,
             titles_len: tab_titles.iter().map(|s| s.len).sum(),
             number_of_tabs: tab_titles.len(),
-            new_tab_len: if content_mode == TabBarContentMode::Full
-                && config.show_new_tab_button_in_tab_bar
-            {
+            new_tab_len: if content_mode == TabBarContentMode::Full && options.show_new_tab_button {
                 new_tab.len()
             } else {
                 0
             },
-            use_fancy_tab_bar: config.use_fancy_tab_bar,
-            tab_max_width: config.tab_max_width,
+            use_fancy_tab_bar: options.use_fancy_tab_bar,
+            tab_max_width: options.tab_max_width,
         }
         .max_width()
     }
 
     fn reserve_native_left_title_button_space(&mut self) {
         if self.is_full()
-            && self.use_integrated_title_buttons
-            && self.config.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
-            && !self.config.use_fancy_tab_bar
-            && !self.config.tab_bar_at_bottom
+            && self.options.integrated_title_buttons_enabled
+            && self.options.integrated_title_button_style == IntegratedTitleButtonStyle::MacOsNative
+            && !self.options.use_fancy_tab_bar
+            && !self.options.tab_bar_at_bottom
         {
             for _ in 0..10 as usize {
                 self.line
@@ -654,9 +664,10 @@ impl<'a> TabBarBuilder<'a> {
 
     fn append_left_integrated_title_buttons(&mut self) {
         if self.is_full()
-            && self.use_integrated_title_buttons
-            && self.config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
-            && self.config.integrated_title_button_alignment == IntegratedTitleButtonAlignment::Left
+            && self.options.integrated_title_buttons_enabled
+            && self.options.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
+            && self.options.integrated_title_button_alignment
+                == IntegratedTitleButtonAlignment::Left
         {
             TabBarState::integrated_title_buttons(
                 self.mouse_x,
@@ -734,7 +745,7 @@ impl<'a> TabBarBuilder<'a> {
             let esc = format_as_escapes(tab_title.items.clone()).expect("already parsed ok above");
             let mut tab_line = parse_status_text(
                 &esc,
-                if self.config.use_fancy_tab_bar {
+                if self.options.use_fancy_tab_bar {
                     CellAttributes::default()
                 } else {
                     cell_attrs.clone()
@@ -769,13 +780,13 @@ impl<'a> TabBarBuilder<'a> {
             &mut self.items,
             &mut self.line,
             self.black_cell.attrs(),
-            self.config.tab_and_split_indices_are_zero_based,
+            self.options.zero_based_indices,
         );
         self.append_new_tab_button();
     }
 
     fn append_new_tab_button(&mut self) {
-        if !self.config.show_new_tab_button_in_tab_bar {
+        if !self.options.show_new_tab_button {
             return;
         }
 
@@ -824,16 +835,26 @@ impl<'a> TabBarBuilder<'a> {
             CellAttributes::default(),
         );
 
+        let button_widths: Vec<usize> = self
+            .config
+            .integrated_title_buttons
+            .iter()
+            .map(|button| match button {
+                IntegratedTitleButton::Hide => window_hide.len().max(window_hide_hover.len()),
+                IntegratedTitleButton::Maximize => {
+                    window_maximize.len().max(window_maximize_hover.len())
+                }
+                IntegratedTitleButton::Close => window_close.len().max(window_close_hover.len()),
+            })
+            .collect();
+
         IntegratedTitleButtonReservation {
             title_width: self.title_width,
-            enabled: self.use_integrated_title_buttons,
-            style: self.config.integrated_title_button_style,
-            alignment: self.config.integrated_title_button_alignment,
-            hide_len: window_hide.len().max(window_hide_hover.len()),
-            maximize_len: window_maximize.len().max(window_maximize_hover.len()),
-            close_len: window_close.len().max(window_close_hover.len()),
+            reserve: self
+                .options
+                .reserve_right_title_button_space(self.content_mode),
         }
-        .title_width_after_reservation(&self.config.integrated_title_buttons, self.content_mode)
+        .title_width_after_reservation(&button_widths)
     }
 
     fn append_deferred_center_and_right_status(&mut self, title_width: usize) {
@@ -924,9 +945,9 @@ impl<'a> TabBarBuilder<'a> {
 
     fn append_right_integrated_title_buttons(&mut self, title_width: usize) {
         if self.is_full()
-            && self.use_integrated_title_buttons
-            && self.config.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
-            && self.config.integrated_title_button_alignment
+            && self.options.integrated_title_buttons_enabled
+            && self.options.integrated_title_button_style != IntegratedTitleButtonStyle::MacOsNative
+            && self.options.integrated_title_button_alignment
                 == IntegratedTitleButtonAlignment::Right
         {
             self.x = title_width;
@@ -1352,11 +1373,7 @@ mod pane_label_tests {
 #[cfg(test)]
 mod tab_bar_policy_tests {
     use super::{
-        IntegratedTitleButtonReservation, StatusLineLayout, StatusLinePlan, TabBarContentMode,
-        TabWidthPolicy,
-    };
-    use window::{
-        IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle,
+        IntegratedTitleButtonReservation, StatusLineLayout, StatusLinePlan, TabWidthPolicy,
     };
 
     #[test]
@@ -1388,31 +1405,20 @@ mod tab_bar_policy_tests {
     }
 
     #[test]
-    fn right_title_button_reservation_only_applies_to_right_full_mode_buttons() {
+    fn right_title_button_reservation_uses_numeric_widths_only_when_enabled() {
         let reservation = IntegratedTitleButtonReservation {
             title_width: 80,
-            enabled: true,
-            style: IntegratedTitleButtonStyle::Windows,
-            alignment: IntegratedTitleButtonAlignment::Right,
-            hide_len: 2,
-            maximize_len: 3,
-            close_len: 4,
+            reserve: true,
         };
 
-        assert_eq!(
-            reservation.title_width_after_reservation(
-                &[IntegratedTitleButton::Hide, IntegratedTitleButton::Close],
-                TabBarContentMode::Full,
-            ),
-            74
-        );
-        assert_eq!(
-            reservation.title_width_after_reservation(
-                &[IntegratedTitleButton::Hide, IntegratedTitleButton::Close],
-                TabBarContentMode::StatusOnly,
-            ),
-            80
-        );
+        assert_eq!(reservation.title_width_after_reservation(&[2, 4]), 74);
+
+        let disabled = IntegratedTitleButtonReservation {
+            title_width: 80,
+            reserve: false,
+        };
+
+        assert_eq!(disabled.title_width_after_reservation(&[2, 4]), 80);
     }
 
     #[test]
