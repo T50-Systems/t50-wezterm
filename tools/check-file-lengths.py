@@ -104,7 +104,6 @@ TEMP_ALLOWED = {
     "wezterm-gui/src/shapecache.rs",
     "wezterm-gui/src/termwindow/background.rs",
     "wezterm-gui/src/termwindow/box_model.rs",
-    "wezterm-gui/src/termwindow/charselect.rs",
     "wezterm-gui/src/termwindow/keyevent.rs",
     "wezterm-gui/src/termwindow/mouseevent.rs",
     "wezterm-gui/src/termwindow/palette.rs",
