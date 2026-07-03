@@ -61,7 +61,6 @@ TEMP_ALLOWED = {
     "config/src/config.rs",
     "config/src/font.rs",
     "config/src/keyassignment.rs",
-    "config/src/lib.rs",
     "config/src/lua.rs",
     "filedescriptor/src/unix.rs",
     "filedescriptor/src/windows.rs",
