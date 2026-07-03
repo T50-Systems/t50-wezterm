@@ -78,7 +78,6 @@ TEMP_ALLOWED = {
     "term/src/terminalstate/kitty.rs",
     "term/src/terminalstate/mod.rs",
     "term/src/terminalstate/performer.rs",
-    "term/src/test/mod.rs",
     "termwiz/src/caps/mod.rs",
     "termwiz/src/lineedit/mod.rs",
     "termwiz/src/render/terminfo.rs",
