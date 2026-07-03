@@ -80,7 +80,6 @@ TEMP_ALLOWED = {
     "term/src/terminalstate/performer.rs",
     "term/src/test/mod.rs",
     "termwiz/src/caps/mod.rs",
-    "termwiz/src/input.rs",
     "termwiz/src/lineedit/mod.rs",
     "termwiz/src/render/terminfo.rs",
     "termwiz/src/terminal/unix.rs",
