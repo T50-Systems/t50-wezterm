@@ -3,13 +3,13 @@ use config::{ConfigHandle, TabBarColors};
 use finl_unicode::grapheme_clusters::Graphemes;
 use mlua::FromLua;
 use mux::pane::PaneId;
-use termwiz::cell::{unicode_column_width, Cell, CellAttributes};
+use termwiz::cell::{Cell, CellAttributes, unicode_column_width};
 use termwiz::color::{AnsiColor, ColorSpec};
 use termwiz::escape::csi::Sgr;
 use termwiz::escape::parser::Parser;
-use termwiz::escape::{Action, ControlCode, CSI};
+use termwiz::escape::{Action, CSI, ControlCode};
 use termwiz::surface::SEQ_ZERO;
-use termwiz_funcs::{format_as_escapes, FormatColor, FormatItem};
+use termwiz_funcs::{FormatColor, FormatItem, format_as_escapes};
 use wezterm_term::{Line, Progress};
 use window::{IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle};
 
@@ -269,6 +269,73 @@ fn is_tab_hover(mouse_x: Option<usize>, x: usize, tab_title_len: usize) -> bool 
         .unwrap_or(false);
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct PaneLabelFormatter {
+    zero_based: bool,
+    max_title_cell_width: usize,
+}
+
+impl PaneLabelFormatter {
+    fn new(zero_based: bool) -> Self {
+        Self {
+            zero_based,
+            max_title_cell_width: 12,
+        }
+    }
+
+    fn display_index(&self, pane_index: usize) -> usize {
+        pane_index + usize::from(!self.zero_based)
+    }
+
+    fn title_for(&self, title: &str) -> String {
+        let title = title.rsplit(['/', '\\']).next().unwrap_or(title);
+        let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
+        let title = if title.is_empty() {
+            "shell".to_string()
+        } else {
+            title
+        };
+
+        truncate_to_cell_width(&title, self.max_title_cell_width)
+    }
+
+    fn label_for(&self, pane_index: usize, title: &str) -> String {
+        format!(
+            " {}:{} ",
+            self.display_index(pane_index),
+            self.title_for(title)
+        )
+    }
+}
+
+fn truncate_to_cell_width(text: &str, max_width: usize) -> String {
+    if unicode_column_width(text, None) <= max_width {
+        return text.to_string();
+    }
+
+    if max_width == 0 {
+        return String::new();
+    }
+
+    let ellipsis = "…";
+    let ellipsis_width = unicode_column_width(ellipsis, None);
+    let content_width = max_width.saturating_sub(ellipsis_width);
+    let mut result = String::new();
+    let mut width = 0;
+
+    for grapheme in Graphemes::new(text) {
+        let grapheme_width = unicode_column_width(grapheme, None);
+        if width + grapheme_width > content_width {
+            break;
+        }
+        result.push_str(grapheme);
+        width += grapheme_width;
+    }
+
+    result.push_str(ellipsis);
+    result
+}
+
 impl TabBarState {
     pub fn default() -> Self {
         Self {
@@ -377,37 +444,21 @@ impl TabBarState {
         }
     }
 
-    fn shorten_pane_title(title: &str) -> String {
-        let title = title.rsplit(['/', '\\']).next().unwrap_or(title);
-        let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
-        let mut title = if title.is_empty() {
-            "shell".to_string()
-        } else {
-            title
-        };
-        if title.chars().count() > 12 {
-            title = title.chars().take(11).collect::<String>() + "…";
-        }
-        title
-    }
-
     fn append_center_pane_status(
         x: &mut usize,
         pane_info: &[PaneInformation],
         items: &mut Vec<TabEntry>,
         line: &mut Line,
         default_attrs: &CellAttributes,
+        zero_based: bool,
     ) {
         if pane_info.len() <= 1 {
             return;
         }
 
         for (idx, pane) in pane_info.iter().enumerate() {
-            let label = format!(
-                " {}:{} ",
-                pane.pane_index + 1,
-                Self::shorten_pane_title(&pane.title)
-            );
+            let formatter = PaneLabelFormatter::new(zero_based);
+            let label = formatter.label_for(pane.pane_index, &pane.title);
             let pane_line = parse_status_text(&label, default_attrs.clone());
             let width = pane_line.len();
             items.push(TabEntry {
@@ -648,6 +699,7 @@ impl TabBarState {
                 &mut items,
                 &mut line,
                 black_cell.attrs(),
+                config.tab_and_split_indices_are_zero_based,
             );
 
             // New tab button
@@ -916,4 +968,65 @@ pub fn parse_status_text(text: &str, default_cell: CellAttributes) -> Line {
     });
     flush_print(&mut print_buffer, &mut cells, &pen);
     Line::from_cells(cells, SEQ_ZERO)
+}
+
+#[cfg(test)]
+mod pane_label_tests {
+    use super::PaneLabelFormatter;
+    use termwiz::cell::unicode_column_width;
+
+    #[test]
+    fn normalizes_empty_title_to_shell() {
+        let formatter = PaneLabelFormatter::new(false);
+
+        assert_eq!(formatter.title_for("   \t  "), "shell");
+        assert_eq!(formatter.label_for(0, ""), " 1:shell ");
+    }
+
+    #[test]
+    fn keeps_basename_and_collapses_whitespace() {
+        let formatter = PaneLabelFormatter::new(false);
+
+        assert_eq!(
+            formatter.title_for(r"C:\Users\me\project   shell.exe"),
+            "project she…"
+        );
+        assert_eq!(formatter.title_for("/tmp/my    app"), "my app");
+    }
+
+    #[test]
+    fn supports_zero_based_indices() {
+        let one_based = PaneLabelFormatter::new(false);
+        let zero_based = PaneLabelFormatter::new(true);
+
+        assert_eq!(one_based.label_for(2, "pwsh"), " 3:pwsh ");
+        assert_eq!(zero_based.label_for(2, "pwsh"), " 2:pwsh ");
+    }
+
+    #[test]
+    fn truncates_without_exceeding_cell_width() {
+        let formatter = PaneLabelFormatter::new(false);
+        let title = formatter.title_for("abcdefghijklmnopqrstuvwxyz");
+
+        assert_eq!(title, "abcdefghijk…");
+        assert!(unicode_column_width(&title, None) <= 12);
+    }
+
+    #[test]
+    fn truncates_cjk_by_cell_width() {
+        let formatter = PaneLabelFormatter::new(false);
+        let title = formatter.title_for("界界界界界界界");
+
+        assert_eq!(title, "界界界界界…");
+        assert!(unicode_column_width(&title, None) <= 12);
+    }
+
+    #[test]
+    fn truncates_emoji_without_splitting_graphemes() {
+        let formatter = PaneLabelFormatter::new(false);
+        let title = formatter.title_for("😀😀😀😀😀😀😀");
+
+        assert!(title.ends_with('…'));
+        assert!(unicode_column_width(&title, None) <= 12);
+    }
 }
