@@ -88,7 +88,6 @@ TEMP_ALLOWED = {
     "wezterm-cell/src/image.rs",
     "wezterm-client/src/client.rs",
     "wezterm-client/src/pane/clientpane.rs",
-    "wezterm-client/src/pane/renderable.rs",
     "wezterm-escape-parser/src/csi.rs",
     "wezterm-escape-parser/src/lib.rs",
     "wezterm-escape-parser/src/parser/mod.rs",
