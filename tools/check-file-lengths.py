@@ -93,7 +93,6 @@ TEMP_ALLOWED = {
     "wezterm-gui/src/main.rs",
     "wezterm-gui/src/overlay/copy.rs",
     "wezterm-gui/src/overlay/quickselect.rs",
-    "wezterm-gui/src/termwindow/background.rs",
     "wezterm-gui/src/termwindow/box_model.rs",
     "wezterm-gui/src/termwindow/keyevent.rs",
     "wezterm-gui/src/termwindow/mouseevent.rs",
