@@ -61,7 +61,6 @@ TEMP_ALLOWED = {
     "config/src/lua.rs",
     "filedescriptor/src/unix.rs",
     "filedescriptor/src/windows.rs",
-    "mux/src/domain.rs",
     "mux/src/lib.rs",
     "mux/src/localpane.rs",
     "mux/src/pane.rs",
