@@ -65,7 +65,6 @@ TEMP_ALLOWED = {
     "mux/src/pane.rs",
     "mux/src/ssh.rs",
     "mux/src/tab.rs",
-    "mux/src/termwiztermtab.rs",
     "mux/src/tmux_commands.rs",
     "term/src/screen.rs",
     "term/src/terminalstate/mod.rs",
