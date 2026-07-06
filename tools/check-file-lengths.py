@@ -54,7 +54,6 @@ EXCLUDED_GLOBS = (
 
 # Temporary migration allowlist. Remove entries as each phase splits a file.
 TEMP_ALLOWED = {
-    "bintree/src/lib.rs",
     "ci/generate-docs.py",
     "ci/generate-workflows.py",
     "config/src/config.rs",
