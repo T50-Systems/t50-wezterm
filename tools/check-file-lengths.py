@@ -54,7 +54,6 @@ EXCLUDED_GLOBS = (
 
 # Temporary migration allowlist. Remove entries as each phase splits a file.
 TEMP_ALLOWED = {
-    "ci/generate-docs.py",
     "ci/generate-workflows.py",
     "config/src/config.rs",
     "config/src/lua.rs",
