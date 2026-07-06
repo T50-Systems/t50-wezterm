@@ -119,7 +119,6 @@ TEMP_ALLOWED = {
     "wezterm-surface/src/line/line.rs",
     "wezterm-surface/src/line/test.rs",
     "wezterm/src/asciicast.rs",
-    "window/src/egl.rs",
     "window/src/os/macos/window.rs",
     "window/src/os/wayland/frame.rs",
     "window/src/os/wayland/window.rs",
