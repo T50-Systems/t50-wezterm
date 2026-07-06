@@ -82,7 +82,6 @@ TEMP_ALLOWED = {
     "wezterm-gui/src/glyphcache.rs",
     "wezterm-gui/src/main.rs",
     "wezterm-gui/src/overlay/copy.rs",
-    "wezterm-gui/src/overlay/quickselect.rs",
     "wezterm-gui/src/termwindow/box_model.rs",
     "wezterm-gui/src/termwindow/render/fancy_tab_bar.rs",
     "wezterm-gui/src/termwindow/render/pane.rs",
