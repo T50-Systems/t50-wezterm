@@ -96,7 +96,6 @@ TEMP_ALLOWED = {
     "wezterm-gui/src/termwindow/render/fancy_tab_bar.rs",
     "wezterm-gui/src/termwindow/render/pane.rs",
     "wezterm-gui/src/termwindow/render/screen_line.rs",
-    "wezterm-gui/src/termwindow/resize.rs",
     "wezterm-gui/src/termwindow/webgpu.rs",
     "wezterm-mux-server-impl/src/sessionhandler.rs",
     "wezterm-ssh/src/config.rs",
