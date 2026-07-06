@@ -100,7 +100,6 @@ TEMP_ALLOWED = {
     "wezterm-gui/src/termwindow/keyevent.rs",
     "wezterm-gui/src/termwindow/mouseevent.rs",
     "wezterm-gui/src/termwindow/render/fancy_tab_bar.rs",
-    "wezterm-gui/src/termwindow/render/mod.rs",
     "wezterm-gui/src/termwindow/render/pane.rs",
     "wezterm-gui/src/termwindow/render/screen_line.rs",
     "wezterm-gui/src/termwindow/resize.rs",
