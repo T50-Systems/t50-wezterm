@@ -92,7 +92,6 @@ TEMP_ALLOWED = {
     "wezterm-ssh/src/config.rs",
     "wezterm-ssh/src/sessioninner.rs",
     "wezterm-ssh/tests/e2e/sftp.rs",
-    "wezterm-ssh/tests/sshd.rs",
     "wezterm-surface/src/line/line.rs",
     "window/src/os/macos/window.rs",
     "window/src/os/wayland/frame.rs",
