@@ -85,7 +85,6 @@ TEMP_ALLOWED = {
     "wezterm-mux-server-impl/src/sessionhandler.rs",
     "wezterm-ssh/src/config.rs",
     "wezterm-ssh/src/sessioninner.rs",
-    "wezterm-surface/src/line/line.rs",
     "window/src/os/macos/window.rs",
     "window/src/os/wayland/frame.rs",
     "window/src/os/wayland/window.rs",
