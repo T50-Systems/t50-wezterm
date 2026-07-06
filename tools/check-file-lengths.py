@@ -75,7 +75,6 @@ TEMP_ALLOWED = {
     "wezterm-font/src/ftwrap.rs",
     "wezterm-font/src/hbwrap.rs",
     "wezterm-font/src/lib.rs",
-    "wezterm-font/src/rasterizer/freetype.rs",
     "wezterm-font/src/shaper/harfbuzz.rs",
     "wezterm-gui/src/commands.rs",
     "wezterm-gui/src/customglyph.rs",
