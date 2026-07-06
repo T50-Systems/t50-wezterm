@@ -117,7 +117,6 @@ TEMP_ALLOWED = {
     "window/src/os/wayland/window.rs",
     "window/src/os/windows/window.rs",
     "window/src/os/x11/connection.rs",
-    "window/src/os/x11/cursor.rs",
     "window/src/os/x11/keyboard.rs",
     "window/src/os/x11/window.rs",
 }
