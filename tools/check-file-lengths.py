@@ -71,7 +71,6 @@ TEMP_ALLOWED = {
     "termwiz/src/terminal/unix.rs",
     "termwiz/src/terminal/windows.rs",
     "termwiz/src/widgets/layout.rs",
-    "termwiz/src/widgets/mod.rs",
     "wezterm-client/src/client.rs",
     "wezterm-escape-parser/src/csi.rs",
     "wezterm-escape-parser/src/parser/mod.rs",
