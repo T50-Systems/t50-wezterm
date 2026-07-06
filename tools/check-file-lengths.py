@@ -84,7 +84,6 @@ TEMP_ALLOWED = {
     "wezterm-font/src/shaper/harfbuzz.rs",
     "wezterm-gui/src/commands.rs",
     "wezterm-gui/src/customglyph.rs",
-    "wezterm-gui/src/frontend.rs",
     "wezterm-gui/src/glyphcache.rs",
     "wezterm-gui/src/main.rs",
     "wezterm-gui/src/overlay/copy.rs",
