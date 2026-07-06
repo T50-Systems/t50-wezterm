@@ -72,7 +72,6 @@ TEMP_ALLOWED = {
     "wezterm-escape-parser/src/parser/mod.rs",
     "wezterm-escape-parser/src/tmux_cc/mod.rs",
     "wezterm-font/src/ftwrap.rs",
-    "wezterm-font/src/hbwrap.rs",
     "wezterm-font/src/lib.rs",
     "wezterm-font/src/shaper/harfbuzz.rs",
     "wezterm-gui/src/commands.rs",
