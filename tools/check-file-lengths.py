@@ -78,7 +78,6 @@ TEMP_ALLOWED = {
     "wezterm-cell/src/image.rs",
     "wezterm-client/src/client.rs",
     "wezterm-escape-parser/src/csi.rs",
-    "wezterm-escape-parser/src/lib.rs",
     "wezterm-escape-parser/src/parser/mod.rs",
     "wezterm-escape-parser/src/tmux_cc/mod.rs",
     "wezterm-font/src/ftwrap.rs",
