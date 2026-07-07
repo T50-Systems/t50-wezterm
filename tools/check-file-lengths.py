@@ -57,7 +57,6 @@ TEMP_ALLOWED = {
     "ci/generate-workflows.py",
     "config/src/config.rs",
     "mux/src/localpane.rs",
-    "mux/src/ssh.rs",
     "mux/src/tab.rs",
     "term/src/screen.rs",
     "term/src/terminalstate/mod.rs",
