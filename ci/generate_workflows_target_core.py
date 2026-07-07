@@ -1,3 +1,5 @@
+# ruff: noqa: F821
+# pyright: reportUndefinedVariable=false
 def __init__(
     self,
     name=None,
@@ -32,33 +34,19 @@ def render_env(self, f, depth=0):
             f.write(f"{indent}  {k}: {yv(v, depth + 3)}\n")
 
 def uses_yum(self):
-    if "fedora" in self.name:
-        return True
-    if "centos" in self.name:
-        return True
-    return False
+    return "fedora" in self.name or "centos" in self.name
 
 def uses_apt(self):
-    if "ubuntu" in self.name:
-        return True
-    if "debian" in self.name:
-        return True
-    return False
+    return "ubuntu" in self.name or "debian" in self.name
 
 def uses_apk(self):
-    if "alpine" in self.name:
-        return True
-    return False
+    return "alpine" in self.name
 
 def uses_zypper(self):
-    if "suse" in self.name:
-        return True
-    return False
+    return "suse" in self.name
 
 def needs_sudo(self):
-    if not self.container and self.uses_apt():
-        return True
-    return False
+    return not self.container and self.uses_apt()
 
 def install_system_package(self, name):
     installer = None
@@ -173,9 +161,7 @@ ln -s /usr/local/git/bin/git /usr/local/bin/git""",
     return steps
 
 def install_rust(self, cache=True, toolchain="stable"):
-    salt = "2"
-    key_prefix = f"{self.name}-{self.rust_target}-{salt}-${{{{ runner.os }}}}"
-    params = dict()
+    params = {}
     if self.rust_target:
         params["target"] = self.rust_target
     steps = []
@@ -224,15 +210,15 @@ rustup default {toolchain}
             # Cache vendored dependecies
             CacheStep(
                 name="Cache Rust Dependencies",
-                path="vendor\n.cargo/config",
-                key="cargo-deps-${{ hashFiles('**/Cargo.lock') }}",
+                path="vendor\n.cargo/config.toml",
+                key="cargo-deps-${{ hashFiles('**/Cargo.lock', '.cargo/config.toml') }}",
                 id="cache-cargo-vendor",
             ),
             # Vendor dependencies
             RunStep(
                 name="Vendor dependecies",
                 condition="steps.cache-cargo-vendor.outputs.cache-hit != 'true'",
-                run="cargo vendor --locked --versioned-dirs >> .cargo/config",
+                run="cargo vendor --locked --versioned-dirs >> .cargo/config.toml",
             ),
         ]
     return steps

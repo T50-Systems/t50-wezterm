@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: "checkout repo"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           submodules: "recursive"
       - name: "Install Rust"
@@ -25,19 +25,19 @@ jobs:
         with:
           target: "x86_64-pc-windows-msvc"
       - name: "Compile with sccache"
-        uses: mozilla-actions/sccache-action@v0.0.9
+        uses: mozilla-actions/sccache-action@v0.0.10
       - name: "Cache Rust Dependencies"
-        uses: actions/cache@v4
+        uses: actions/cache@v5.0.5
         id: cache-cargo-vendor
         with:
           path: |
             vendor
-            .cargo/config
-          key: "cargo-deps-${{ hashFiles('**/Cargo.lock') }}"
+            .cargo/config.toml
+          key: "cargo-deps-${{ hashFiles('**/Cargo.lock', '.cargo/config.toml') }}"
       - name: "Vendor dependecies"
         if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
         shell: bash
-        run: "cargo vendor --locked --versioned-dirs >> .cargo/config"
+        run: "cargo vendor --locked --versioned-dirs >> .cargo/config.toml"
       - name: "Build wezterm (Release mode)"
         shell: cmd
         run: |
@@ -90,7 +90,7 @@ jobs:
 
     steps:
       - name: "checkout repo"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
       - name: "Download artifact"
         uses: actions/download-artifact@v8
         with:
@@ -109,7 +109,7 @@ jobs:
         shell: bash
         run: "bash ci/retry.sh gh release upload --clobber $(ci/tag-name.sh) WezTerm-*.zip WezTerm-*.exe *.sha256"
       - name: "Checkout winget-pkgs"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: "wez/winget-pkgs"
           path: "winget-pkgs"
