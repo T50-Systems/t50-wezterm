@@ -1,6 +1,6 @@
 # Plan to reach 8.5/10 Clean Code / SOLID maturity
 
-Branch: `analysis/clean-code-solid`  
+Branch: `analysis/clean-code-solid`
 Target: raise the T50 pane-label / secondary-bar work from **medium maturity** to **8.5/10** while minimizing regressions through TDD and focused unit tests.
 
 ## Goal

@@ -1,6 +1,6 @@
 # Clean Code / SOLID maturity analysis
 
-Branch: `analysis/clean-code-solid`  
+Branch: `analysis/clean-code-solid`
 Scope: T50 WezTerm fork, with emphasis on the pane-label / secondary-bar changes currently carried on top of upstream WezTerm.
 
 ## Executive summary
