@@ -58,7 +58,6 @@ TEMP_ALLOWED = {
     "config/src/config.rs",
     "mux/src/lib.rs",
     "mux/src/localpane.rs",
-    "mux/src/pane.rs",
     "mux/src/ssh.rs",
     "mux/src/tab.rs",
     "mux/src/tmux_commands.rs",
