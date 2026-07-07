@@ -29,6 +29,7 @@ def create_flathub_pr(self):
 def create_winget_pr(self):
     steps = []
     if "windows" in self.name:
+        upstream_only = "github.repository == 'wezterm/wezterm'"
         steps += [
             ActionStep(
                 "Checkout winget-pkgs",
@@ -38,18 +39,22 @@ def create_winget_pr(self):
                     "path": "winget-pkgs",
                     "token": "${{ secrets.GH_PAT }}",
                 },
+                condition=upstream_only,
             ),
             RunStep(
                 "Setup email for winget repo",
                 "cd winget-pkgs && git config user.email wez@wezfurlong.org",
+                condition=upstream_only,
             ),
             RunStep(
                 "Setup name for winget repo",
                 "cd winget-pkgs && git config user.name 'Wez Furlong'",
+                condition=upstream_only,
             ),
             RunStep(
                 "Create winget manifest and push to fork",
                 "bash ci/make-winget-pr.sh winget-pkgs WezTerm-*.exe",
+                condition=upstream_only,
             ),
             RunStep(
                 "Submit PR",
@@ -57,6 +62,7 @@ def create_winget_pr(self):
                 env={
                     "GITHUB_TOKEN": "${{ secrets.GH_PAT }}",
                 },
+                condition=upstream_only,
             ),
         ]
 
