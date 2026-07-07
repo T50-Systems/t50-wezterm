@@ -56,7 +56,6 @@ EXCLUDED_GLOBS = (
 TEMP_ALLOWED = {
     "ci/generate-workflows.py",
     "config/src/config.rs",
-    "mux/src/lib.rs",
     "mux/src/localpane.rs",
     "mux/src/ssh.rs",
     "mux/src/tab.rs",
