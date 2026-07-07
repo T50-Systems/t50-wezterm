@@ -10,8 +10,8 @@
 
 [Setup]
 AppId={{BCF6F0DA-5B9A-408D-8562-F680AE6E1EAF}
-ArchitecturesAllowed=x64 arm64
-ArchitecturesInstallIn64BitMode=x64 arm64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -101,8 +101,8 @@ begin
   else
   begin
     // If capability detection is not available, then we rely on build number.
-    // x64 emulation on arm64 is available starting build 21277 so both x64 and
-    // arm64 will work
+    // x64 emulation on arm64 is available starting build 21277 so an
+    // x64-compatible installer will work
     if Version.Build >= 21277 then
     begin
       Result := True;
@@ -110,8 +110,8 @@ begin
     else
     begin
       // If we're here, it means we're on a build between 17763 and 21277
-      // because Inno will check MinVersion 10.0.17763 and arch will be x64 or
-      // arm64. Only x64 is supported in this build range
+      // because Inno will check MinVersion 10.0.17763 and the installer
+      // will only proceed on x64-compatible systems. Only x64 is supported
       Arch := ProcessorArchitecture;
       Result := Arch = paX64;
     end
