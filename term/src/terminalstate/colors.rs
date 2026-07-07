@@ -1,0 +1,28 @@
+use super::*;
+
+pub(crate) fn default_color_map() -> HashMap<u16, RgbColor> {
+    let mut color_map = HashMap::new();
+    // Match colors to the VT340 color table:
+    // https://github.com/hackerb9/vt340test/blob/main/colormap/showcolortable.png
+    for (idx, r, g, b) in [
+        (0, 0, 0, 0),
+        (1, 0x33, 0x33, 0xcc),
+        (2, 0xcc, 0x23, 0x23),
+        (3, 0x33, 0xcc, 0x33),
+        (4, 0xcc, 0x33, 0xcc),
+        (5, 0x33, 0xcc, 0xcc),
+        (6, 0xcc, 0xcc, 0xcc),
+        (7, 0x77, 0x77, 0x77),
+        (8, 0x44, 0x44, 0x44),
+        (9, 0x56, 0x56, 0x99),
+        (10, 0x99, 0x44, 0x44),
+        (11, 0x56, 0x99, 0x56),
+        (12, 0x99, 0x56, 0x99),
+        (13, 0x56, 0x99, 0x99),
+        (14, 0x99, 0x99, 0x56),
+        (15, 0xcc, 0xcc, 0xcc),
+    ] {
+        color_map.insert(idx, RgbColor::new_8bpc(r, g, b));
+    }
+    color_map
+}
