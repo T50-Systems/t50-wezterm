@@ -211,7 +211,7 @@ rustup default {toolchain}
             CacheStep(
                 name="Cache Rust Dependencies",
                 path="vendor\n.cargo/config.toml",
-                key="cargo-deps-${{ hashFiles('**/Cargo.lock') }}",
+                key="cargo-deps-${{ hashFiles('**/Cargo.lock', '.cargo/config.toml') }}",
                 id="cache-cargo-vendor",
             ),
             # Vendor dependencies
