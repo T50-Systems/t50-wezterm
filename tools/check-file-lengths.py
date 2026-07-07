@@ -70,7 +70,6 @@ TEMP_ALLOWED = {
     "wezterm-gui/src/customglyph.rs",
     "wezterm-gui/src/termwindow/render/screen_line.rs",
     "wezterm-mux-server-impl/src/sessionhandler.rs",
-    "wezterm-ssh/src/config.rs",
     "wezterm-ssh/src/sessioninner.rs",
     "window/src/os/macos/window.rs",
     "window/src/os/wayland/frame.rs",
