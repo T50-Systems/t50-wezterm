@@ -72,7 +72,6 @@ TEMP_ALLOWED = {
     "wezterm-font/src/lib.rs",
     "wezterm-gui/src/commands.rs",
     "wezterm-gui/src/customglyph.rs",
-    "wezterm-gui/src/glyphcache.rs",
     "wezterm-gui/src/main.rs",
     "wezterm-gui/src/termwindow/render/screen_line.rs",
     "wezterm-mux-server-impl/src/sessionhandler.rs",
