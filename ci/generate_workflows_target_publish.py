@@ -1,10 +1,12 @@
+# ruff: noqa: F821
+# pyright: reportUndefinedVariable=false
 def create_flathub_pr(self):
     if not self.app_image:
         return []
     return [
         ActionStep(
             "Checkout flathub/org.wezfurlong.wezterm",
-            action="actions/checkout@v5",
+            action="actions/checkout@v7",
             params={
                 "repository": "flathub/org.wezfurlong.wezterm",
                 "path": "flathub",
@@ -30,7 +32,7 @@ def create_winget_pr(self):
         steps += [
             ActionStep(
                 "Checkout winget-pkgs",
-                action="actions/checkout@v5",
+                action="actions/checkout@v7",
                 params={
                     "repository": "wez/winget-pkgs",
                     "path": "winget-pkgs",
@@ -66,7 +68,7 @@ def update_homebrew_tap(self):
         steps += [
             ActionStep(
                 "Checkout homebrew tap",
-                action="actions/checkout@v5",
+                action="actions/checkout@v7",
                 params={
                     "repository": "wez/homebrew-wezterm",
                     "path": "homebrew-wezterm",
@@ -90,7 +92,7 @@ def update_homebrew_tap(self):
         steps += [
             ActionStep(
                 "Checkout linuxbrew tap",
-                action="actions/checkout@v5",
+                action="actions/checkout@v7",
                 params={
                     "repository": "wez/homebrew-wezterm-linuxbrew",
                     "path": "linuxbrew-wezterm",
@@ -140,18 +142,17 @@ def prep_environment(self, cache=True):
             RunStep("Update APT", f"{sudo}apt update"),
         ]
 
-    if self.uses_zypper():
-        if self.container:
-            steps += [
-                RunStep(
-                    "Seed GITHUB_PATH to work around possible @action/core bug",
-                    f'echo "$PATH:/bin:/usr/bin" >> $GITHUB_PATH',
-                ),
-                RunStep(
-                    "Install util-linux",
-                    "zypper install -y util-linux",
-                ),
-            ]
+    if self.uses_zypper() and self.container:
+        steps += [
+            RunStep(
+                "Seed GITHUB_PATH to work around possible @action/core bug",
+                'echo "$PATH:/bin:/usr/bin" >> $GITHUB_PATH',
+            ),
+            RunStep(
+                "Install util-linux",
+                "zypper install -y util-linux",
+            ),
+        ]
     if self.container:
         if ("fedora" in self.container) or (
             ("centos" in self.container) and ("centos7" not in self.container)
@@ -207,11 +208,10 @@ def prep_environment(self, cache=True):
     steps += self.install_git()
     steps += self.install_curl()
 
-    if self.uses_apt():
-        if self.container:
-            steps += [
-                RunStep("Update APT", f"{sudo}apt update"),
-            ]
+    if self.uses_apt() and self.container:
+        steps += [
+            RunStep("Update APT", f"{sudo}apt update"),
+        ]
 
     steps += self.install_openssh_server()
     steps += self.checkout()

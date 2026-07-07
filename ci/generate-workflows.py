@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
+# pyright: reportAttributeAccessIssue=false, reportCallIssue=false, reportOptionalIterable=false
 import os
-import sys
 import glob
 from copy import deepcopy
 
@@ -51,10 +51,8 @@ TRIGGER_PATHS_WIN = [
 
 
 def yv(v, depth=0):
-    if v is True:
-        return "true"
-    if v is False:
-        return "false"
+    if isinstance(v, bool):
+        return "true" if v else "false"
     if v is None:
         return "nil"
 
@@ -62,8 +60,8 @@ def yv(v, depth=0):
         if "\n" in v:
             indent = "  " * depth
             result = ""
-            for l in v.splitlines():
-                result = result + "\n" + (f"{indent}{l}" if l else "")
+            for line in v.splitlines():
+                result = result + "\n" + (f"{indent}{line}" if line else "")
             return "|" + result
         # This is hideous
         if '"' in v:
@@ -73,7 +71,7 @@ def yv(v, depth=0):
     return v
 
 
-class Step(object):
+class Step:
     def render(self, f, depth=0):
         raise NotImplementedError(repr(self))
 
@@ -136,13 +134,13 @@ class ActionStep(Step):
 class CacheStep(ActionStep):
     def __init__(self, name, path, key, id=None):
         super().__init__(
-            name, action="actions/cache@v4", params={"path": path, "key": key}, id=id
+            name, action="actions/cache@v5.0.5", params={"path": path, "key": key}, id=id
         )
 
 
 class SccacheStep(ActionStep):
     def __init__(self, name):
-        super().__init__(name, action="mozilla-actions/sccache-action@v0.0.9")
+        super().__init__(name, action="mozilla-actions/sccache-action@v0.0.10")
 
 
 class CheckoutStep(ActionStep):
@@ -150,7 +148,7 @@ class CheckoutStep(ActionStep):
         params = {}
         if submodules:
             params["submodules"] = "recursive"
-        super().__init__(name, action=f"actions/checkout@v5", params=params)
+        super().__init__(name, action="actions/checkout@v7", params=params)
 
 
 class InstallCrateStep(ActionStep):
@@ -165,7 +163,7 @@ class InstallCrateStep(ActionStep):
         )
 
 
-class Job(object):
+class Job:
     def __init__(self, runs_on, container=None, steps=None, env=None):
         self.runs_on = runs_on
         self.container = container
@@ -181,11 +179,14 @@ class Job(object):
 
 
 def _target_chunk(name):
-    with open(os.path.join(os.path.dirname(__file__), name), encoding="utf-8") as f:
-        return f.read()
+    try:
+        with open(os.path.join(os.path.dirname(__file__), name), encoding="utf-8") as f:
+            return f.read()
+    except OSError as exc:
+        raise RuntimeError(f"failed to read workflow target chunk {name}") from exc
 
 
-class Target(object):
+class Target:
     exec(_target_chunk("generate_workflows_target_core.py"))
     exec(_target_chunk("generate_workflows_target_build.py"))
     exec(_target_chunk("generate_workflows_target_publish.py"))
@@ -250,28 +251,29 @@ def generate_actions(namer, jobber, trigger, is_continuous, is_tag=False):
         trigger_paths = "- " + "\n      - ".join(yv(p) for p in sorted(trigger_paths))
         trigger_with_paths = trigger.replace("@PATHS@", trigger_paths)
 
-        with open(file_name, "w") as f:
-            f.write(
-                f"""name: {name}
+        try:
+            with open(file_name, "w") as f:
+                f.write(
+                    f"""name: {name}
 {trigger_with_paths}
 jobs:
   build:
     runs-on: {yv(job.runs_on)}
     {container}
 """
-            )
+                )
 
-            t.render_env(f)
+                t.render_env(f)
 
-            job.render(f, 3)
+                job.render(f, 3)
 
-            # We upload using a native runner as github API access
-            # inside a container is really unreliable and can result
-            # in broken releases that can't automatically be repaired
-            # <https://github.com/cli/cli/issues/4863>
-            if uploader:
-                f.write(
-                    """
+                # We upload using a native runner as github API access
+                # inside a container is really unreliable and can result
+                # in broken releases that can't automatically be repaired
+                # <https://github.com/cli/cli/issues/4863>
+                if uploader:
+                    f.write(
+                        """
   upload:
     runs-on: ubuntu-latest
     needs: build
@@ -281,9 +283,10 @@ jobs:
       pages: write
       id-token: write
 """
-                )
-                uploader.render(f, 3)
-
+                    )
+                    uploader.render(f, 3)
+        except OSError as exc:
+            raise RuntimeError(f"failed to write workflow file {file_name}") from exc
         # Sanity check the yaml, if pyyaml is available
         try:
             import yaml
@@ -307,6 +310,7 @@ on:
   pull_request:
     branches:
       - main
+      - dev
     paths:
       @PATHS@
 """,
@@ -349,7 +353,10 @@ on:
 
 def remove_gen_actions():
     for name in glob.glob(".github/workflows/gen_*.yml"):
-        os.remove(name)
+        try:
+            os.remove(name)
+        except OSError as exc:
+            raise RuntimeError(f"failed to remove generated workflow {name}") from exc
 
 
 remove_gen_actions()
