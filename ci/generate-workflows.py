@@ -277,7 +277,7 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: build
-    if: github.repository == 'wezterm/wezterm'
+    if: github.repository == 'wezterm/wezterm' || github.repository == 'T50-Systems/t50-wezterm'
     permissions:
       contents: write
       pages: write
