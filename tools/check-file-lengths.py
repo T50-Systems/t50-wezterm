@@ -66,7 +66,6 @@ TEMP_ALLOWED = {
     "term/src/terminalstate/performer.rs",
     "wezterm-client/src/client.rs",
     "wezterm-escape-parser/src/csi.rs",
-    "wezterm-escape-parser/src/parser/mod.rs",
     "wezterm-font/src/ftwrap.rs",
     "wezterm-font/src/lib.rs",
     "wezterm-gui/src/commands.rs",
