@@ -5,7 +5,8 @@ mod test {
     use crate::csi::*;
     use crate::osc::{DynamicColorNumber, OperatingSystemCommand};
     use crate::parser::Parser;
-    use crate::{Action, Esc, EscCode};
+    use crate::{Action, Esc, EscCode, OneBased};
+    use std::io::Write;
 
     include!("../test/support_and_osc.rs");
     include!("../test/basic_and_controls.rs");
