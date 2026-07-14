@@ -283,4 +283,3 @@ pub(crate) fn block_sprite_part1(
             _ => return None,
         })
 }
-

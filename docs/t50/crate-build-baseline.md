@@ -1,9 +1,9 @@
 # Crate Build Optimization Baseline
 
-Date: 2026-07-14  
-Platform: Windows MSVC  
-Package: `wezterm-gui`  
-Profile: `release`  
+Date: 2026-07-14
+Platform: Windows MSVC
+Package: `wezterm-gui`
+Profile: `release`
 Cargo jobs: `2`
 
 ## Harness
