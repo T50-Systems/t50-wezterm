@@ -5,7 +5,7 @@ use config::{ConfigHandle, DeferredKeyCode};
 use ordered_float::NotNan;
 use std::borrow::Cow;
 use std::convert::TryFrom;
-use window::{KeyCode, Modifiers};
+use wezterm_input_types::{KeyCode, Modifiers};
 
 mod default_actions;
 mod derive;

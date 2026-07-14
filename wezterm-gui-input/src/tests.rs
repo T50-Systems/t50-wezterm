@@ -4,7 +4,7 @@ use config::keyassignment::{CopyModeAssignment, KeyAssignment, SpawnCommand, Spa
 use config::{DeferredKeyCode, Key, KeyNoAction};
 use std::convert::TryFrom;
 use wezterm_dynamic::ToDynamic;
-use window::{KeyCode, Modifiers};
+use wezterm_input_types::{KeyCode, Modifiers};
 
 #[test]
 fn derives_activate_command_palette_metadata() {

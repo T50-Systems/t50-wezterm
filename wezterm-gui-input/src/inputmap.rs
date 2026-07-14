@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
 use wezterm_dynamic::{ToDynamic, Value};
 use wezterm_term_api::MouseButton;
-use window::{KeyCode, Modifiers, PhysKeyCode, UIKeyCapRendering};
+use wezterm_input_types::{KeyCode, Modifiers, PhysKeyCode, UIKeyCapRendering};
 
 #[derive(Debug, Clone)]
 pub struct OverlayKeyTables {

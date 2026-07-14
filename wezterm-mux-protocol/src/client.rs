@@ -2,17 +2,7 @@ use crate::pane::PaneId;
 use chrono::serde::ts_seconds;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::time::SystemTime;
-
-static CLIENT_ID: AtomicUsize = AtomicUsize::new(0);
-lazy_static::lazy_static! {
-    static ref EPOCH: u64 = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ClientId {
@@ -22,29 +12,6 @@ pub struct ClientId {
     pub epoch: u64,
     pub id: usize,
     pub ssh_auth_sock: Option<String>,
-}
-
-impl ClientId {
-    pub fn new() -> Self {
-        let id = CLIENT_ID.fetch_add(1, Ordering::Relaxed);
-        Self {
-            hostname: hostname::get()
-                .map(|s| s.to_string_lossy().to_string())
-                .unwrap_or_else(|_| "localhost".to_string()),
-            username: config::username_from_env().unwrap_or_else(|_| "somebody".to_string()),
-            pid: unsafe { libc::getpid() as u32 },
-            epoch: *EPOCH,
-            id,
-            ssh_auth_sock: default_ssh_auth_sock(),
-        }
-    }
-}
-
-fn default_ssh_auth_sock() -> Option<String> {
-    match &config::configuration().default_ssh_auth_sock {
-        Some(value) => Some(value.to_string()),
-        None => std::env::var("SSH_AUTH_SOCK").ok(),
-    }
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug, Clone)]

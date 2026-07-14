@@ -447,7 +447,7 @@ mod protocol_reexports {
         let dims = crate::renderable::RenderableDimensions::default();
         let _: protocol::renderable::RenderableDimensions = dims;
 
-        let client_id = crate::client::ClientId::new();
+        let client_id = crate::client::new_client_id();
         let _: protocol::client::ClientId = client_id;
     }
 }

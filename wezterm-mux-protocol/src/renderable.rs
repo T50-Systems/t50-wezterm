@@ -1,3 +1,4 @@
+#[cfg(feature = "lua")]
 use luahelper::impl_lua_conversion_dynamic;
 use serde::{Deserialize, Serialize};
 use wezterm_dynamic::{FromDynamic, ToDynamic};
@@ -13,6 +14,7 @@ pub struct StableCursorPosition {
     pub shape: termwiz::surface::CursorShape,
     pub visibility: termwiz::surface::CursorVisibility,
 }
+#[cfg(feature = "lua")]
 impl_lua_conversion_dynamic!(StableCursorPosition);
 
 #[derive(
@@ -41,4 +43,5 @@ pub struct RenderableDimensions {
     /// True if the lines should be rendered reversed
     pub reverse_video: bool,
 }
+#[cfg(feature = "lua")]
 impl_lua_conversion_dynamic!(RenderableDimensions);

@@ -13,5 +13,5 @@ config.workspace = true
 log.workspace = true
 ordered-float.workspace = true
 wezterm-dynamic.workspace = true
+wezterm-input-types.workspace = true
 wezterm-term-api = { workspace = true, features = ["use_serde"] }
-window.workspace = true

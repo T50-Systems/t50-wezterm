@@ -3,7 +3,7 @@ use config::keyassignment::{
     SelectionMode,
 };
 use ordered_float::NotNan;
-use window::{KeyCode as WKeyCode, Modifiers};
+use wezterm_input_types::{KeyCode as WKeyCode, Modifiers};
 
 pub fn search_key_table() -> KeyTable {
     let mut table = KeyTable::default();
