@@ -7155,8 +7155,8 @@ dependencies = [
  "log",
  "ordered-float 4.6.0",
  "wezterm-dynamic",
+ "wezterm-input-types",
  "wezterm-term-api",
- "window",
 ]
 
 [[package]]
@@ -7183,11 +7183,8 @@ version = "0.1.0"
 dependencies = [
  "bintree",
  "chrono",
- "config",
- "hostname",
- "lazy_static",
- "libc",
  "luahelper",
+ "mlua",
  "serde",
  "serde_json",
  "termwiz",
@@ -7399,9 +7396,6 @@ dependencies = [
 [[package]]
 name = "wezterm-version"
 version = "0.1.0"
-dependencies = [
- "git2",
-]
 
 [[package]]
 name = "wgpu"
