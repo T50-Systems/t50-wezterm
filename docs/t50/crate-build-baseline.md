@@ -84,3 +84,79 @@ Local post-refactor timing artifacts are under `C:/t50bt-post/runs/`.
   and exposes explicit parallel units without crossing the clean-build stop
   threshold. Future work should target final GUI codegen/link time rather than
   adding finer crates indiscriminately.
+
+## Codegen and Link Follow-up
+
+The final GUI unit was probed separately after the crate work. A failed MSVC
+link-timing probe reached the linker only after about 86 seconds, while a complete
+rust-lld build took 85.5 seconds. This indicates that backend code generation, not
+the final linker alone, accounts for most of the roughly 82–86-second GUI unit.
+rust-lld was therefore not adopted as the default linker.
+
+An opt-in `release-fast` profile now retains release optimization level 3 while
+enabling incremental compilation and 256 codegen units:
+
+```bash
+cargo fast -p wezterm-gui
+
+python tools/measure-cargo-build.py touch \
+  --package wezterm-gui --profile release-fast --jobs 2 \
+  --touch wezterm-gui/src/commands/palette.rs
+```
+
+Shipping and CI artifacts continue to use the unchanged `release` profile.
+
+Measured on the same Windows MSVC machine:
+
+| Scenario | Standard release | `release-fast` | Change |
+|---|---:|---:|---:|
+| Clean build | 1095.532 s | 1096 s | +0.04% |
+| No-op build | 1.594 s | 1.519 s | -4.71% |
+| Semantic GUI edit | 83.516 s baseline GUI edit | 13.312 s | -84.06% |
+| Final GUI unit during clean build | 85.6 s | 76.0 s | -11.21% |
+
+The clean `release-fast` run also confirmed that removing the build-time `git2`
+dependency from `wezterm-version` eliminates one host `libgit2-sys` build. The
+previous clean timing contained two `libgit2-sys` build-script runs (91.2 and
+64.7 seconds); the follow-up contains one 91.6-second run needed by the runtime
+plugin path. Wall-clock clean time remains dominated by the vendored static
+OpenSSL build, which measured 509.2 seconds in the follow-up run.
+
+Local timing artifacts are under `C:/t50bt-fast/`.
+
+## Windows OpenSSL CI Cache
+
+Windows CI restores a dedicated cache of the OpenSSL installation produced by
+the locked `openssl-src` dependency. On a cache hit,
+`ci/windows-openssl-cache.ps1` sets `OPENSSL_NO_VENDOR=1`, `OPENSSL_DIR`, and
+`OPENSSL_STATIC=1`; `openssl-sys` then links the restored static libraries instead
+of rebuilding OpenSSL. A cache miss in the trusted warmer preserves the existing
+vendored build and publishes its installation for later consumer runs.
+
+The cache fingerprint includes `Cargo.lock`, every workspace manifest, the
+static-CRT Cargo configuration, the cache helper, rustc identity, hosted-runner
+image identity, and the visible MSVC compiler version. The cache itself carries a
+manifest that is checked before activation; an invalid restore is discarded and
+falls back to the vendored build. A dedicated workflow on `main` and `dev`, plus
+a daily default-branch refresh, seeds the cache so pull requests and tagged builds
+can restore it. Consumers only restore caches; the trusted warmer saves repaired
+or newly keyed archives, allowing an invalid immutable cache to self-heal.
+
+Production `release`, static CRT linkage, package contents, and the local fallback
+remain unchanged. The expected warm-cache ceiling is the roughly 509-second
+native OpenSSL step; CI measurements must confirm the realized saving.
+
+## Native C/C++ sccache Coverage
+
+The measured clean timings for `cairo-sys-rs` (48.6 seconds),
+`libssh-rs-sys` (25.1 seconds), and `libgit2-sys` (91.6 seconds) came from
+the local isolated harness without `RUSTC_WRAPPER`. Windows CI already sets
+`RUSTC_WRAPPER=sccache` with the GitHub Actions backend. The locked `cc 1.2.63`
+uses a compatible `RUSTC_WRAPPER` automatically as the C/C++ compiler wrapper,
+and all three native build scripts compile through `cc::Build`. Their unchanged
+MSVC object files are therefore already eligible for the shared sccache.
+
+The generated Windows workflows reset sccache statistics immediately before the
+four release builds and report them immediately afterward. This separates release
+cache evidence from the later test-profile build and makes C/C++ hit rates visible
+before introducing a more fragile prebuilt-library or Cargo-target cache.
