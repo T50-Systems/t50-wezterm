@@ -50,3 +50,37 @@ violating the other:
 
 All comparisons must use the same package, profile, job count, toolchain, and
 machine.
+
+## Post-refactor Results
+
+The post-refactor measurements use the same machine, package, profile, and
+two-job limit. The pre-refactor scenarios were rerun from commit `475d1a99e`
+against its existing incremental target to provide equivalent comparisons.
+
+| Scenario | Before | After | Change |
+|---|---:|---:|---:|
+| Clean release | 1044.937 s | 1095.532 s | +4.84% |
+| No-op release | 1.500 s | 1.594 s | +6.27% |
+| Terminal implementation edit | 204.563 s | 187.828 s | -8.18% |
+| Config runtime edit | 283.796 s | 224.672 s | -20.83% |
+| Mux backend edit | 154.078 s | 145.593 s | -5.51% |
+| GUI render edit | 87.485 s | 83.516 s | -4.54% |
+| Custom-glyph mapping edit | 86.875 s | 83.625 s | -3.74% |
+| GUI command derivation edit | 87.453 s | 87.562 s | +0.12% |
+
+Local post-refactor timing artifacts are under `C:/t50bt-post/runs/`.
+
+## Interpretation
+
+- The strongest measured gain is config runtime isolation at 20.83%.
+- Terminal and mux implementation edits also improved, although they remain
+  below the preferred 10% threshold individually.
+- Moving custom glyph and GUI input code reduces the main GUI compilation unit
+  and exposes independent clean-build jobs, but final GUI codegen/linking still
+  dominates their representative edit scenarios.
+- Clean release time regressed 4.84%, remaining inside the ADR's 5% limit.
+- The boundaries remain accepted for this iteration because the combined change
+  materially improves a high-cost config edit, reduces multiple rebuild paths,
+  and exposes explicit parallel units without crossing the clean-build stop
+  threshold. Future work should target final GUI codegen/link time rather than
+  adding finer crates indiscriminately.
