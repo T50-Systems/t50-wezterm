@@ -34,7 +34,10 @@ fn client_info_json_shape_is_stable() {
 
 #[test]
 fn pattern_and_split_json_shape_are_stable() {
-    assert_eq!(serde_json::to_string(&Pattern::Regex("foo".to_string())).unwrap(), r#"{"Regex":"foo"}"#);
+    assert_eq!(
+        serde_json::to_string(&Pattern::Regex("foo".to_string())).unwrap(),
+        r#"{"Regex":"foo"}"#
+    );
     assert_eq!(
         serde_json::to_string(&SplitRequest {
             direction: SplitDirection::Vertical,
@@ -83,6 +86,15 @@ fn pane_node_round_trip_preserves_shape() {
     });
 
     let encoded = varbincode::serialize(&node).unwrap();
+    assert_eq!(
+        encoded.as_slice(),
+        &[
+            2, 11, 12, 13, 4, 112, 97, 110, 101, 24, 80, 160, 6, 216, 4, 96, 1, 20, 104, 116, 116,
+            112, 115, 58, 47, 47, 101, 120, 97, 109, 112, 108, 101, 46, 99, 111, 109, 47, 1, 0, 7,
+            100, 101, 102, 97, 117, 108, 116, 0, 0, 0, 1, 0, 1, 2, 1, 5, 116, 116, 121, 83, 48,
+        ],
+        "PaneNode wire bytes changed; update codec compatibility deliberately",
+    );
     let decoded: PaneNode = varbincode::deserialize(encoded.as_slice()).unwrap();
 
     assert_eq!(decoded, node);
@@ -105,6 +117,11 @@ fn renderable_dimensions_round_trip() {
     };
 
     let encoded = varbincode::serialize(&dims).unwrap();
+    assert_eq!(
+        encoded.as_slice(),
+        &[80, 24, 120, 224, 0, 12, 144, 1, 192, 12, 132, 7, 1],
+        "RenderableDimensions wire bytes changed; update codec compatibility deliberately",
+    );
     let decoded: RenderableDimensions = varbincode::deserialize(encoded.as_slice()).unwrap();
 
     assert_eq!(decoded, dims);
