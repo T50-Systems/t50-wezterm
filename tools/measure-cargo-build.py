@@ -27,7 +27,11 @@ def parse_args() -> argparse.Namespace:
         help="clean uses an isolated target; noop/touch reuse the incremental target",
     )
     parser.add_argument("--package", default="wezterm-gui")
-    parser.add_argument("--profile", choices=("dev", "release"), default="release")
+    parser.add_argument(
+        "--profile",
+        default="release",
+        help="Cargo profile name (for example: dev, release, or release-fast)",
+    )
     parser.add_argument(
         "--jobs",
         type=int,
@@ -74,6 +78,8 @@ def cargo_command(args: argparse.Namespace) -> list[str]:
         command.extend(("--jobs", str(jobs)))
     if args.profile == "release":
         command.append("--release")
+    elif args.profile != "dev":
+        command.extend(("--profile", args.profile))
     if args.no_default_features:
         command.append("--no-default-features")
     return command

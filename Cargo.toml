@@ -32,6 +32,12 @@ exclude = [
 opt-level = 3
 # debug = 2
 
+[profile.release-fast]
+# Optimized local feedback profile. Shipping artifacts continue to use `release`.
+inherits = "release"
+incremental = true
+codegen-units = 256
+
 [profile.dev]
 # https://jakedeichert.com/blog/reducing-rust-incremental-compilation-times-on-macos-by-70-percent/
 # Disabled because it breaks builds on Windows
