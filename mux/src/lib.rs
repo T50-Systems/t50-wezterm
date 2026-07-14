@@ -419,3 +419,35 @@ include!("root/mux_core.rs");
 include!("root/mux_collections.rs");
 include!("root/mux_spawn.rs");
 include!("root/tail.rs");
+
+#[cfg(test)]
+mod protocol_reexports {
+    use wezterm_mux_protocol as protocol;
+
+    #[test]
+    fn reexports_preserve_type_identity() {
+        let pane_id: protocol::pane::PaneId = 1;
+        let _: crate::pane::PaneId = pane_id;
+
+        let tab_id: crate::tab::TabId = 2;
+        let _: protocol::tab::TabId = tab_id;
+
+        let window_id: crate::window::WindowId = 3;
+        let _: protocol::window::WindowId = window_id;
+
+        let pattern: crate::pane::Pattern = protocol::pane::Pattern::Regex("needle".to_string());
+        let _: protocol::pane::Pattern = pattern.clone();
+
+        let split: crate::tab::SplitRequest = protocol::tab::SplitRequest::default();
+        let _: protocol::tab::SplitRequest = split;
+
+        let cursor = crate::renderable::StableCursorPosition::default();
+        let _: protocol::renderable::StableCursorPosition = cursor;
+
+        let dims = crate::renderable::RenderableDimensions::default();
+        let _: protocol::renderable::RenderableDimensions = dims;
+
+        let client_id = crate::client::ClientId::new();
+        let _: protocol::client::ClientId = client_id;
+    }
+}

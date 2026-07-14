@@ -1,18 +1,15 @@
 use crate::domain::DomainId;
 use crate::pane::*;
-use crate::renderable::StableCursorPosition;
 use crate::{Mux, MuxNotification, WindowId};
 use bintree::PathBranch;
 use config::configuration;
 use config::keyassignment::PaneDirection;
 use parking_lot::Mutex;
 use rangeset::intersects_range;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::sync::Arc;
-use url::Url;
-use wezterm_term::{StableRowIndex, TerminalSize};
+use wezterm_term::TerminalSize;
 
 include!("tab/types.rs");
 include!("tab/tree.rs");

@@ -13,7 +13,7 @@ config.workspace = true
 leb128.workspace = true
 log.workspace = true
 metrics.workspace = true
-mux.workspace = true
+wezterm-mux-protocol.workspace = true
 portable-pty = { workspace = true, features = ["serde_support"]}
 rangeset.workspace = true
 serde = {workspace=true, features = ["rc", "derive"]}
@@ -26,3 +26,4 @@ zstd.workspace = true
 
 [dev-dependencies]
 base91.workspace = true
+chrono.workspace = true

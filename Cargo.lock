@@ -863,11 +863,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base91",
+ "chrono",
  "config",
  "leb128",
  "log",
  "metrics",
- "mux",
  "portable-pty",
  "rangeset",
  "serde",
@@ -875,6 +875,7 @@ dependencies = [
  "termwiz",
  "thiserror 1.0.69",
  "varbincode",
+ "wezterm-mux-protocol",
  "wezterm-term-api",
  "zstd",
 ]
@@ -3560,6 +3561,7 @@ dependencies = [
  "url",
  "wezterm-config-types",
  "wezterm-dynamic",
+ "wezterm-mux-protocol",
  "wezterm-ssh",
  "wezterm-term",
  "winapi",
@@ -7149,6 +7151,26 @@ dependencies = [
  "euclid",
  "serde",
  "wezterm-dynamic",
+]
+
+[[package]]
+name = "wezterm-mux-protocol"
+version = "0.1.0"
+dependencies = [
+ "bintree",
+ "chrono",
+ "config",
+ "hostname",
+ "lazy_static",
+ "libc",
+ "luahelper",
+ "serde",
+ "serde_json",
+ "termwiz",
+ "url",
+ "varbincode",
+ "wezterm-dynamic",
+ "wezterm-term-api",
 ]
 
 [[package]]

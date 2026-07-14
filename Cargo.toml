@@ -18,6 +18,7 @@ members = [
   "wezterm-uds",
   "wezterm-term-api",
   "wezterm-config-types",
+  "wezterm-mux-protocol",
 ]
 resolver = "2"
 exclude = [
@@ -145,6 +146,7 @@ mio = "0.8"
 mlua = "0.9"
 mux = { path = "mux" }
 mux-lua = { path = "lua-api-crates/mux" }
+wezterm-mux-protocol = { path = "wezterm-mux-protocol" }
 names = { version = "0.12", default-features = false }
 nix = "0.29"
 notify = "5.0.0"
