@@ -9,7 +9,7 @@ use crate::termwindow::render::corners::{
 use crate::termwindow::{DimensionContext, GuiWin, TermWindow};
 use crate::utilsprites::RenderMetrics;
 use config::keyassignment::KeyAssignment;
-use config::Dimension;
+use wezterm_config_types::Dimension;
 use frecency::Frecency;
 use luahelper::{from_lua_value_dynamic, impl_lua_conversion_dynamic};
 use mux_lua::MuxPane;

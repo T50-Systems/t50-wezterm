@@ -2,7 +2,7 @@ use crate::screen::Screens;
 use crate::{Appearance, Connection, GeometryOrigin, RequestedWindowGeometry, ResolvedGeometry};
 use anyhow::Result as Fallible;
 use config::keyassignment::KeyAssignment;
-use config::DimensionContext;
+use wezterm_config_types::DimensionContext;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Mutex;

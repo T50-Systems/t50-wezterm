@@ -15,6 +15,7 @@ bintree.workspace = true
 bitflags.workspace = true
 chrono.workspace = true
 config.workspace = true
+wezterm-config-types.workspace = true
 crossbeam.workspace = true
 downcast-rs.workspace = true
 fancy-regex.workspace = true

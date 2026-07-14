@@ -3,7 +3,7 @@ fn resolve_fg_color_attr(
     fg: ColorAttribute,
     palette: &ColorPalette,
     config: &ConfigHandle,
-    style: &config::TextStyle,
+    style: &wezterm_config_types::TextStyle,
 ) -> LinearRgba {
     match fg {
         wezterm_term::color::ColorAttribute::Default => {

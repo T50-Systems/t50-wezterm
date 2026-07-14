@@ -2,7 +2,7 @@
 mod test {
     use super::*;
     use crate::FontDatabase;
-    use config::FontAttributes;
+    use wezterm_config_types::FontAttributes;
 
     #[test]
     fn ligatures() {

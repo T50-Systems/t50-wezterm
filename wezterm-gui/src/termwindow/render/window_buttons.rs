@@ -108,7 +108,7 @@ mod windows {
 
     pub fn window_button_colors(
         background_lightness: f64,
-        foreground: config::IntegratedTitleButtonColor,
+        foreground: wezterm_config_types::IntegratedTitleButtonColor,
         window_button: IntegratedTitleButton,
     ) -> WindowButtonColors {
         let foreground = auto_button_color(background_lightness, foreground);
@@ -195,7 +195,7 @@ mod gnome {
 
     pub fn window_button_colors(
         background_lightness: f64,
-        foreground: config::IntegratedTitleButtonColor,
+        foreground: wezterm_config_types::IntegratedTitleButtonColor,
         _window_button: IntegratedTitleButton,
     ) -> WindowButtonColors {
         let foreground = auto_button_color(background_lightness, foreground);

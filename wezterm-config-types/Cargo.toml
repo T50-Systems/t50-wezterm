@@ -1,0 +1,23 @@
+[package]
+name = "wezterm-config-types"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+bitflags.workspace = true
+enum-display-derive.workspace = true
+log.workspace = true
+luahelper.workspace = true
+ordered-float = { workspace = true, features = ["serde"] }
+portable-pty = { workspace = true, features = ["serde_support"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+shlex.workspace = true
+termwiz = { workspace = true, features = ["use_serde"] }
+toml.workspace = true
+wezterm-dynamic.workspace = true
+wezterm-input-types.workspace = true
+wezterm-term-api = { workspace = true, features = ["use_serde"] }

@@ -218,7 +218,7 @@ struct SpawnWindow {
     width: Option<usize>,
     height: Option<usize>,
     workspace: Option<String>,
-    position: Option<config::GuiPosition>,
+    position: Option<wezterm_config_types::GuiPosition>,
     #[dynamic(flatten)]
     cmd_builder: CommandBuilderFrag,
 }

@@ -7,7 +7,7 @@ use cocoa::appkit::NSApplicationTerminateReply;
 use cocoa::base::id;
 use cocoa::foundation::NSInteger;
 use config::keyassignment::KeyAssignment;
-use config::WindowCloseConfirmation;
+use wezterm_config_types::WindowCloseConfirmation;
 use objc::declare::ClassDecl;
 use objc::rc::StrongPtr;
 use objc::runtime::{Class, Object, Sel, BOOL, NO, YES};

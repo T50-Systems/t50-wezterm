@@ -17,6 +17,7 @@ vendor-nerd-font-symbols = []
 anyhow.workspace = true
 cairo-rs.workspace = true
 config.workspace = true
+wezterm-config-types.workspace = true
 encoding_rs.workspace = true
 enum-display-derive.workspace = true
 euclid.workspace = true

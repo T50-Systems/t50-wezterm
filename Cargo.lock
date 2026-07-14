@@ -982,6 +982,7 @@ dependencies = [
  "umask",
  "wezterm-bidi",
  "wezterm-config-derive",
+ "wezterm-config-types",
  "wezterm-dynamic",
  "wezterm-input-types",
  "wezterm-ssh",
@@ -3557,6 +3558,7 @@ dependencies = [
  "textwrap",
  "thiserror 1.0.69",
  "url",
+ "wezterm-config-types",
  "wezterm-dynamic",
  "wezterm-ssh",
  "wezterm-term",
@@ -3579,6 +3581,7 @@ dependencies = [
  "termwiz",
  "termwiz-funcs",
  "url-funcs",
+ "wezterm-config-types",
  "wezterm-dynamic",
  "wezterm-term-api",
 ]
@@ -6932,6 +6935,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "wezterm-config-types"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bitflags 1.3.2",
+ "enum-display-derive",
+ "log",
+ "luahelper",
+ "ordered-float 4.6.0",
+ "portable-pty",
+ "serde",
+ "serde_json",
+ "shlex 1.3.0",
+ "termwiz",
+ "toml 0.8.23",
+ "wezterm-dynamic",
+ "wezterm-input-types",
+ "wezterm-term-api",
+]
+
+[[package]]
 name = "wezterm-dynamic"
 version = "0.2.1"
 dependencies = [
@@ -7015,6 +7039,7 @@ dependencies = [
  "walkdir",
  "wezterm-bidi",
  "wezterm-color-types",
+ "wezterm-config-types",
  "wezterm-input-types",
  "wezterm-term",
  "wezterm-toast-notification",
@@ -7092,6 +7117,7 @@ dependencies = [
  "wezterm-bidi",
  "wezterm-blob-leases",
  "wezterm-client",
+ "wezterm-config-types",
  "wezterm-dynamic",
  "wezterm-font",
  "wezterm-gui-subcommands",
@@ -7586,6 +7612,7 @@ dependencies = [
  "wayland-protocols-plasma",
  "wezterm-bidi",
  "wezterm-color-types",
+ "wezterm-config-types",
  "wezterm-font",
  "wezterm-input-types",
  "winapi",

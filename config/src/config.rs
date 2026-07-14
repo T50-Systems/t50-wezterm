@@ -25,7 +25,6 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 use termwiz::hyperlink;
-use termwiz::surface::CursorShape;
 use wezterm_bidi::ParagraphDirectionHint;
 use wezterm_config_derive::ConfigMeta;
 use wezterm_dynamic::{FromDynamic, ToDynamic};

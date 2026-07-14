@@ -42,6 +42,7 @@ clap.workspace = true
 codec.workspace = true
 colorgrad.workspace = true
 config.workspace = true
+wezterm-config-types.workspace = true
 dhat = {workspace=true, optional=true}
 dirs-next.workspace = true
 downcast-rs.workspace = true

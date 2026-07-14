@@ -2,7 +2,7 @@ use crate::glyphcache::{GlyphCache, SizedBlockKey};
 use crate::utilsprites::RenderMetrics;
 use ::window::bitmaps::atlas::Sprite;
 use ::window::color::SrgbaPixel;
-use config::DimensionContext;
+use wezterm_config_types::DimensionContext;
 use std::ops::Range;
 use termwiz::surface::CursorShape;
 use tiny_skia::{BlendMode, FillRule, Paint, Path, PathBuilder, PixmapMut, Stroke, Transform};

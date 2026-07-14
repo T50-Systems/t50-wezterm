@@ -135,7 +135,7 @@ pub trait FontShaper {
     fn metrics_for_idx(&self, font_idx: usize, size: f64, dpi: u32) -> anyhow::Result<FontMetrics>;
 }
 
-pub use config::FontShaperSelection;
+pub use wezterm_config_types::FontShaperSelection;
 
 pub fn new_shaper(
     config: &config::ConfigHandle,
