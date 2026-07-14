@@ -47,6 +47,7 @@ TRIGGER_PATHS_MAC = [
 TRIGGER_PATHS_WIN = [
     "assets/windows/**/*",
     "ci/windows-installer.iss",
+    "ci/windows-openssl-cache.ps1",
 ]
 
 
@@ -77,16 +78,19 @@ class Step:
 
 
 class RunStep(Step):
-    def __init__(self, name, run, shell="bash", env=None, condition=None):
+    def __init__(self, name, run, shell="bash", env=None, condition=None, id=None):
         self.name = name
         self.run = run
         self.shell = shell
         self.env = env
         self.condition = condition
+        self.id = id
 
     def render(self, f, depth=0):
         indent = "  " * depth
         f.write(f"{indent}- name: {yv(self.name)}\n")
+        if self.id:
+            f.write(f"{indent}  id: {self.id}\n")
         if self.condition:
             f.write(f"{indent}  if: {self.condition}\n")
         if self.env:
@@ -132,10 +136,18 @@ class ActionStep(Step):
 
 
 class CacheStep(ActionStep):
-    def __init__(self, name, path, key, id=None):
-        super().__init__(
-            name, action="actions/cache@v5.0.5", params={"path": path, "key": key}, id=id
+    def __init__(
+        self, name, path, key, id=None, restore_keys=None, restore_only=False
+    ):
+        params = {"path": path, "key": key}
+        if restore_keys:
+            params["restore-keys"] = restore_keys
+        action = (
+            "actions/cache/restore@v5.0.5"
+            if restore_only
+            else "actions/cache@v5.0.5"
         )
+        super().__init__(name, action=action, params=params, id=id)
 
 
 class SccacheStep(ActionStep):
@@ -351,6 +363,84 @@ on:
     )
 
 
+def windows_openssl_cache_action():
+    target = Target(
+        name="windows",
+        os="windows-2025",
+        rust_target="x86_64-pc-windows-msvc",
+    )
+    steps = target.prep_environment()
+    cache_key = "${{ steps.openssl-cache-context.outputs.key }}"
+    cache_prefix = f"windows-openssl-msvc-static-v3-{cache_key}"
+    steps += [
+        RunStep(
+            name="Build async_ossl to warm static OpenSSL cache",
+            shell="cmd",
+            run=target.fixup_windows_path(
+                "cargo build -p async_ossl --release"
+            ),
+        ),
+        RunStep(
+            name="Populate static OpenSSL cache",
+            shell="pwsh",
+            run="./ci/windows-openssl-cache.ps1 populate",
+            env={"OPENSSL_CACHE_KEY": cache_key},
+        ),
+        ActionStep(
+            name="Save static OpenSSL cache",
+            action="actions/cache/save@v5.0.5",
+            condition="steps.openssl-cache-activate.outputs.active != 'true'",
+            params={
+                "path": "target/ci-cache/openssl/x86_64-pc-windows-msvc",
+                "key": f"{cache_prefix}-${{{{ github.run_id }}}}-${{{{ github.run_attempt }}}}",
+            },
+        ),
+    ]
+    job = Job(runs_on=target.os, steps=steps, env=target.env)
+    file_name = ".github/workflows/gen_windows_openssl_cache.yml"
+
+    try:
+        with open(file_name, "w") as f:
+            f.write(
+                f'''name: windows_openssl_cache
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 2 * * *"
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - "**/Cargo.toml"
+      - ".cargo/config.toml"
+      - "Cargo.lock"
+      - "ci/generate-workflows.py"
+      - "ci/generate_workflows_target_core.py"
+      - "ci/windows-openssl-cache.ps1"
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: {yv(job.runs_on)}
+'''
+            )
+            target.render_env(f)
+            job.render(f, 3)
+    except OSError as exc:
+        raise RuntimeError(
+            f"failed to write workflow file {file_name}"
+        ) from exc
+
+    try:
+        import yaml
+
+        with open(file_name) as f:
+            yaml.safe_load(f)
+    except ImportError:
+        pass
+
+
 def remove_gen_actions():
     for name in glob.glob(".github/workflows/gen_*.yml"):
         try:
@@ -363,3 +453,4 @@ remove_gen_actions()
 generate_pr_actions()
 continuous_actions()
 tag_actions()
+windows_openssl_cache_action()

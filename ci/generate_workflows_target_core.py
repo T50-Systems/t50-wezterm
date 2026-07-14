@@ -221,4 +221,30 @@ rustup default {toolchain}
                 run="cargo vendor --locked --versioned-dirs >> .cargo/config.toml",
             ),
         ]
+        if "win" in self.name:
+            cache_key = "${{ steps.openssl-cache-context.outputs.key }}"
+            cache_prefix = f"windows-openssl-msvc-static-v3-{cache_key}"
+            steps += [
+                RunStep(
+                    name="Fingerprint static OpenSSL cache inputs",
+                    shell="pwsh",
+                    run="./ci/windows-openssl-cache.ps1 key",
+                    id="openssl-cache-context",
+                ),
+                CacheStep(
+                    name="Restore static OpenSSL",
+                    path="target/ci-cache/openssl/x86_64-pc-windows-msvc",
+                    key=f"{cache_prefix}-restore",
+                    restore_keys=f"{cache_prefix}-",
+                    restore_only=True,
+                    id="cache-openssl",
+                ),
+                RunStep(
+                    name="Activate cached static OpenSSL",
+                    shell="pwsh",
+                    run="./ci/windows-openssl-cache.ps1 activate",
+                    env={"OPENSSL_CACHE_KEY": cache_key},
+                    id="openssl-cache-activate",
+                ),
+            ]
     return steps
