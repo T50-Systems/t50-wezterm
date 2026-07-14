@@ -1,15 +1,11 @@
-use crate::inputmap::InputMap;
+use KeyAssignment::*;
 use config::keyassignment::*;
 use config::window::WindowLevel;
 use config::{ConfigHandle, DeferredKeyCode};
-use mux::domain::DomainState;
-use mux::Mux;
 use ordered_float::NotNan;
 use std::borrow::Cow;
-use std::cmp::Ordering;
 use std::convert::TryFrom;
 use window::{KeyCode, Modifiers};
-use KeyAssignment::*;
 
 mod default_actions;
 mod derive;
@@ -17,7 +13,6 @@ mod derive_part1;
 mod derive_part2;
 mod derive_part3;
 mod derive_part4;
-mod palette;
 
 use default_actions::compute_default_actions;
 pub use derive::derive_command_from_key_assignment;

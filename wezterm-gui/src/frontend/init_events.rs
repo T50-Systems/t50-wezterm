@@ -178,7 +178,7 @@ impl GuiFrontEnd {
         // TODO: arrange for this to happen on config reload.
         let config = config::configuration();
         let input_map = crate::inputmap::new_input_map(&config);
-        crate::commands::CommandDef::recreate_menubar(&config, &input_map);
+        crate::commands::recreate_menubar(&config, &input_map);
 
         Ok(front_end)
     }

@@ -1,4 +1,4 @@
-use crate::commands::{CommandDef, ExpandedCommand};
+use crate::commands::{ExpandedCommand, actions_for_palette_and_menubar};
 use crate::overlay::selector::{matcher_pattern, matcher_score};
 use crate::termwindow::box_model::*;
 use crate::termwindow::modal::Modal;
@@ -23,8 +23,8 @@ use termwiz::nerdfonts::NERD_FONTS;
 use wezterm_config_types::Dimension;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
-use window::color::LinearRgba;
 use window::Modifiers;
+use window::color::LinearRgba;
 
 struct MatchResults {
     selection: String,
@@ -95,7 +95,7 @@ fn build_commands(
 ) -> Vec<ExpandedCommand> {
     let config = config::configuration();
     let input_map = crate::inputmap::new_input_map(&config);
-    let mut commands = CommandDef::actions_for_palette_and_menubar(&config, &input_map);
+    let mut commands = actions_for_palette_and_menubar(&config, &input_map);
 
     match config::run_immediate_with_lua_config(|lua| {
         let mut entries: Vec<UserPaletteEntry> = vec![];

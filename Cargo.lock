@@ -7153,7 +7153,6 @@ version = "0.1.0"
 dependencies = [
  "config",
  "log",
- "mux",
  "ordered-float 4.6.0",
  "wezterm-dynamic",
  "wezterm-term-api",
