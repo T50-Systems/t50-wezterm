@@ -4,4 +4,6 @@ include!("glyphcache/cache.rs");
 include!("glyphcache/glyphs.rs");
 include!("glyphcache/image_cache.rs");
 include!("glyphcache/misc.rs");
+include!("glyphcache/custom_blocks.rs");
+include!("glyphcache/cursors.rs");
 include!("glyphcache/lines.rs");

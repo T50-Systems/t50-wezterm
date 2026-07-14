@@ -1,11 +1,9 @@
 use super::*;
 
-impl GlyphCache {
-    pub(super) fn block_sprite_part1(
-        &mut self,
+pub(crate) fn block_sprite_part1(
         block: BlockKey,
-        metrics: &RenderMetrics,
-        mut buffer: &mut Image,
+        metrics: &RasterizeGlyphParams,
+        mut buffer: &mut Pixmap,
     ) -> Option<()> {
         Some(match block {
             BlockKey::Blocks(blocks) => {
@@ -66,7 +64,7 @@ impl GlyphCache {
             }
             BlockKey::Triangles(triangles, alpha) => {
                 let mut draw = |cmd: &'static [PolyCommand], style: PolyStyle| {
-                    self.draw_polys(
+                    draw_polys(
                         &metrics,
                         &[Poly {
                             path: cmd,
@@ -74,11 +72,7 @@ impl GlyphCache {
                             style: style,
                         }],
                         &mut buffer,
-                        if config::configuration().anti_alias_custom_block_glyphs {
-                            PolyAA::AntiAlias
-                        } else {
-                            PolyAA::MoarPixels
-                        },
+                        poly_aa(metrics.anti_alias),
                         BlendMode::default(),
                     );
                 };
@@ -149,7 +143,7 @@ impl GlyphCache {
             }
             BlockKey::CellDiagonals(diagonals) => {
                 let mut draw = |cmd: &'static [PolyCommand]| {
-                    self.draw_polys(
+                    draw_polys(
                         &metrics,
                         &[Poly {
                             path: cmd,
@@ -157,11 +151,7 @@ impl GlyphCache {
                             style: PolyStyle::Outline,
                         }],
                         &mut buffer,
-                        if config::configuration().anti_alias_custom_block_glyphs {
-                            PolyAA::AntiAlias
-                        } else {
-                            PolyAA::MoarPixels
-                        },
+                        poly_aa(metrics.anti_alias),
                         BlendMode::default(),
                     );
                 };
@@ -253,13 +243,7 @@ impl GlyphCache {
                 let topleft_offset_x = dot_area_width / 2. - square_length / 2.;
                 let topleft_offset_y = dot_area_height / 2. - square_length / 2.;
 
-                let (width, height) = buffer.image_dimensions();
-                let mut pixmap = PixmapMut::from_bytes(
-                    buffer.pixel_data_slice_mut(),
-                    width as u32,
-                    height as u32,
-                )
-                .expect("make pixmap from existing bitmap");
+                let mut pixmap = buffer.as_mut();
                 let mut paint = Paint::default();
                 paint.set_color(tiny_skia::Color::WHITE);
                 paint.force_hq_pipeline = true;
@@ -298,5 +282,5 @@ impl GlyphCache {
             }
             _ => return None,
         })
-    }
 }
+

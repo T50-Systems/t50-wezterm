@@ -1,0 +1,15 @@
+[package]
+name = "wezterm-custom-glyph"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+repository = "https://github.com/wezterm/wezterm"
+description = "Pure custom glyph definitions, mapping tables, and rasterization"
+license = "MIT"
+publish = false
+
+[dependencies]
+bitflags.workspace = true
+log.workspace = true
+termwiz.workspace = true
+tiny-skia.workspace = true
