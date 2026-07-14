@@ -6,7 +6,7 @@ use termwiz::cell::CellAttributes;
 use termwiz::color::ColorSpec as TWColorSpec;
 pub use termwiz::color::{AnsiColor, ColorAttribute, RgbColor, SrgbaTuple};
 use wezterm_dynamic::{FromDynamic, ToDynamic};
-use wezterm_term::color::ColorPalette;
+use wezterm_term_api::color::ColorPalette;
 
 include!("color/rgba.rs");
 include!("color/palette.rs");

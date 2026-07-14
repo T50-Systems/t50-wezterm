@@ -16,7 +16,7 @@ use termwiz::escape::parser::Parser as TWParser;
 use termwiz::escape::Action;
 #[cfg(unix)]
 use unix::UnixTty as Tty;
-use wezterm_term::color::ColorPalette;
+use wezterm_term_api::color::ColorPalette;
 #[cfg(windows)]
 use win::WinTty as Tty;
 

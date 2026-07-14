@@ -3,7 +3,7 @@ use clap::Parser;
 use serde::Serializer as _;
 use tabout::{tabulate_output, Alignment, Column};
 use wezterm_client::client::Client;
-use wezterm_term::TerminalSize;
+use wezterm_term_api::TerminalSize;
 
 #[derive(Debug, Parser, Clone, Copy)]
 pub struct ListCommand {

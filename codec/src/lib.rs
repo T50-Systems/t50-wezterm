@@ -33,8 +33,8 @@ use termwiz::hyperlink::Hyperlink;
 use termwiz::image::{ImageData, TextureCoordinate};
 use termwiz::surface::{Line, SequenceNo};
 use thiserror::Error;
-use wezterm_term::color::ColorPalette;
-use wezterm_term::{Alert, ClipboardSelection, StableRowIndex, TerminalSize};
+use wezterm_term_api::color::ColorPalette;
+use wezterm_term_api::{Alert, ClipboardSelection, StableRowIndex, TerminalSize};
 
 include!("lib/raw.rs");
 include!("lib/pdu.rs");

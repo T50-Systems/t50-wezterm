@@ -10,8 +10,8 @@ use std::convert::TryFrom;
 use std::path::PathBuf;
 use wezterm_dynamic::{FromDynamic, FromDynamicOptions, ToDynamic, Value};
 use wezterm_input_types::{KeyCode, Modifiers};
-use wezterm_term::input::MouseButton;
-use wezterm_term::SemanticType;
+use wezterm_term_api::input::MouseButton;
+use wezterm_term_api::SemanticType;
 
 include!("keyassignment/launcher.rs");
 include!("keyassignment/spawn.rs");

@@ -30,7 +30,7 @@ use wezterm_bidi::ParagraphDirectionHint;
 use wezterm_config_derive::ConfigMeta;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_input_types::{IntegratedTitleButton, IntegratedTitleButtonAlignment, IntegratedTitleButtonStyle, Modifiers, UIKeyCapRendering, WindowDecorations};
-use wezterm_term::TerminalSize;
+use wezterm_term_api::TerminalSize;
 mod defaults;
 mod impl_load;
 mod impl_runtime;

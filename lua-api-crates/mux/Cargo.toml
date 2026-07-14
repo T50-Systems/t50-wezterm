@@ -20,4 +20,4 @@ termwiz-funcs.workspace = true
 termwiz.workspace = true
 url-funcs.workspace = true
 wezterm-dynamic.workspace = true
-wezterm-term.workspace = true
+wezterm-term-api.workspace = true

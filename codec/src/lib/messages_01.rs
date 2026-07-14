@@ -156,7 +156,7 @@ impl From<std::time::SystemTime> for InputSerial {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SendMouseEvent {
     pub pane_id: PaneId,
-    pub event: wezterm_term::input::MouseEvent,
+    pub event: wezterm_term_api::input::MouseEvent,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

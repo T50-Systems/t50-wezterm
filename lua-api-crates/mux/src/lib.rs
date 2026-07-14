@@ -12,7 +12,7 @@ use portable_pty::CommandBuilder;
 use std::collections::HashMap;
 use std::sync::Arc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
-use wezterm_term::TerminalSize;
+use wezterm_term_api::TerminalSize;
 
 mod domain;
 mod pane;

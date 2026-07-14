@@ -50,7 +50,7 @@ impl RenderableState {
                     let col = inner
                         .dimensions
                         .cols
-                        .saturating_sub(wezterm_term::unicode_column_width(&status, None));
+                        .saturating_sub(wezterm_term_api::unicode_column_width(&status, None));
 
                     let mut attr = CellAttributes::default();
                     attr.set_foreground(AnsiColor::White);

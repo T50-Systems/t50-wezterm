@@ -1,0 +1,29 @@
+[package]
+name = "wezterm-term-api"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+repository = "https://github.com/wezterm/wezterm"
+description = "Stable terminal-facing API types for wezterm-term"
+license = "MIT"
+publish = false
+
+[features]
+use_serde = [
+  "termwiz/use_serde",
+  "wezterm-cell/use_serde",
+  "wezterm-escape-parser/use_serde",
+  "wezterm-surface/use_serde",
+]
+
+[dependencies]
+anyhow.workspace = true
+downcast-rs.workspace = true
+lazy_static.workspace = true
+serde = { workspace = true, features = ["rc"] }
+termwiz = { workspace = true, features = ["use_image"] }
+wezterm-bidi.workspace = true
+wezterm-cell = { workspace = true, features = ["std", "use_image"] }
+wezterm-dynamic = { workspace = true, features = ["std"] }
+wezterm-escape-parser = { workspace = true, features = ["std", "use_image"] }
+wezterm-surface = { workspace = true, features = ["std", "appdata", "use_image"] }

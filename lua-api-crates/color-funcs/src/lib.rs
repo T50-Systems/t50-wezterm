@@ -121,7 +121,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     color.set(
         "get_default_colors",
         lua.create_function(|_, _: ()| {
-            let palette: Palette = wezterm_term::color::ColorPalette::default().into();
+            let palette: Palette = wezterm_term_api::color::ColorPalette::default().into();
             Ok(palette)
         })?,
     )?;

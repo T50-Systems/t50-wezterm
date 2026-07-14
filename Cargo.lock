@@ -875,7 +875,7 @@ dependencies = [
  "termwiz",
  "thiserror 1.0.69",
  "varbincode",
- "wezterm-term",
+ "wezterm-term-api",
  "zstd",
 ]
 
@@ -909,7 +909,7 @@ dependencies = [
  "serde_yaml",
  "wezterm-color-types",
  "wezterm-dynamic",
- "wezterm-term",
+ "wezterm-term-api",
 ]
 
 [[package]]
@@ -985,7 +985,7 @@ dependencies = [
  "wezterm-dynamic",
  "wezterm-input-types",
  "wezterm-ssh",
- "wezterm-term",
+ "wezterm-term-api",
  "winapi",
 ]
 
@@ -3580,7 +3580,7 @@ dependencies = [
  "termwiz-funcs",
  "url-funcs",
  "wezterm-dynamic",
- "wezterm-term",
+ "wezterm-term-api",
 ]
 
 [[package]]
@@ -6820,7 +6820,7 @@ dependencies = [
  "url",
  "wezterm-client",
  "wezterm-gui-subcommands",
- "wezterm-term",
+ "wezterm-term-api",
  "winapi",
 ]
 
@@ -6906,7 +6906,7 @@ dependencies = [
  "url",
  "wezterm-dynamic",
  "wezterm-ssh",
- "wezterm-term",
+ "wezterm-term-api",
  "wezterm-uds",
  "winapi",
 ]
@@ -7175,7 +7175,7 @@ dependencies = [
  "termwiz",
  "url",
  "wezterm-client",
- "wezterm-term",
+ "wezterm-term-api",
  "wezterm-uds",
  "winapi",
 ]
@@ -7272,6 +7272,23 @@ dependencies = [
  "termwiz",
  "unicode-normalization",
  "url",
+ "wezterm-bidi",
+ "wezterm-cell",
+ "wezterm-dynamic",
+ "wezterm-escape-parser",
+ "wezterm-surface",
+ "wezterm-term-api",
+]
+
+[[package]]
+name = "wezterm-term-api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "downcast-rs",
+ "lazy_static",
+ "serde",
+ "termwiz",
  "wezterm-bidi",
  "wezterm-cell",
  "wezterm-dynamic",

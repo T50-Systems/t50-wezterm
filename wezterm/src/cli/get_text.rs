@@ -2,7 +2,7 @@ use clap::Parser;
 use mux::pane::PaneId;
 use termwiz_funcs::lines_to_escapes;
 use wezterm_client::client::Client;
-use wezterm_term::{ScrollbackOrVisibleRowIndex, StableRowIndex};
+use wezterm_term_api::{ScrollbackOrVisibleRowIndex, StableRowIndex};
 
 #[derive(Debug, Parser, Clone)]
 pub struct GetText {
