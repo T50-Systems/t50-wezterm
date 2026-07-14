@@ -1,16 +1,16 @@
-use crate::commands::CommandDef;
-use config::keyassignment::{
-    ClipboardCopyDestination, ClipboardPasteSource, KeyAssignment, KeyTableEntry, KeyTables,
-    MouseEventTrigger, SelectionMode,
-};
-use config::{ConfigHandle, MouseEventAltScreen, MouseEventTriggerMods};
-use std::collections::{BTreeMap, HashMap};
-use std::time::Duration;
-use wezterm_dynamic::{ToDynamic, Value};
-use wezterm_term::input::MouseButton;
-use window::{KeyCode, Modifiers, PhysKeyCode, UIKeyCapRendering};
+#[allow(unused_imports)]
+pub use wezterm_gui_input::{human_key, ui_key, InputMap, OverlayKeyTables};
 
-include!("inputmap/types.rs");
-include!("inputmap/build.rs");
-include!("inputmap/lookup.rs");
-include!("inputmap/format.rs");
+pub fn overlay_key_tables() -> OverlayKeyTables {
+    wezterm_gui_input::default_overlay_key_tables()
+}
+
+pub fn new_input_map(config: &config::ConfigHandle) -> InputMap {
+    let overlay_tables = overlay_key_tables();
+    InputMap::new(config, &overlay_tables)
+}
+
+pub fn default_input_map() -> InputMap {
+    let overlay_tables = overlay_key_tables();
+    InputMap::default_input_map(&overlay_tables)
+}

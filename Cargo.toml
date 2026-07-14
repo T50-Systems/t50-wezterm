@@ -20,6 +20,7 @@ members = [
   "wezterm-config-types",
   "wezterm-mux-protocol",
   "wezterm-custom-glyph",
+  "wezterm-gui-input",
 ]
 resolver = "2"
 exclude = [
@@ -258,6 +259,7 @@ wezterm-dynamic-derive = { version="0.1.1", path="wezterm-dynamic/derive" }
 wezterm-escape-parser = { version="0.1.0", path="wezterm-escape-parser" }
 wezterm-font = { path = "wezterm-font" }
 wezterm-gui-subcommands = { path = "wezterm-gui-subcommands" }
+wezterm-gui-input = { path = "wezterm-gui-input" }
 wezterm-input-types = { version="0.1", path = "wezterm-input-types", default-features=false }
 wezterm-mux-server-impl = { path = "wezterm-mux-server-impl" }
 wezterm-open-url = { path = "wezterm-open-url" }

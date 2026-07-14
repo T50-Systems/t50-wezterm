@@ -1,5 +1,4 @@
 use crate::frontend::try_front_end;
-use crate::inputmap::InputMap;
 use config::keyassignment::KeyTable;
 use config::lua::get_or_create_sub_module;
 use config::lua::mlua::{self, Lua};
@@ -59,7 +58,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     window_mod.set(
         "default_keys",
         lua.create_function(|lua, _: ()| {
-            let map = InputMap::default_input_map();
+            let map = crate::inputmap::default_input_map();
             let keys = key_table_to_lua(&map.keys.default);
             dynamic_to_lua_value(lua, keys.to_dynamic())
         })?,
@@ -68,7 +67,7 @@ pub fn register(lua: &Lua) -> anyhow::Result<()> {
     window_mod.set(
         "default_key_tables",
         lua.create_function(|lua, _: ()| {
-            let inputmap = InputMap::default_input_map();
+            let inputmap = crate::inputmap::default_input_map();
             let mut tables: HashMap<String, Vec<Key>> = HashMap::new();
             for (k, table) in &inputmap.keys.by_name {
                 let keys = key_table_to_lua(table);

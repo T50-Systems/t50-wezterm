@@ -1,5 +1,4 @@
 use crate::commands::derive_command_from_key_assignment;
-use crate::inputmap::InputMap;
 use crate::overlay::quickselect;
 use crate::overlay::selector::{matcher_pattern, matcher_score};
 use crate::termwindow::TermWindowNotif;

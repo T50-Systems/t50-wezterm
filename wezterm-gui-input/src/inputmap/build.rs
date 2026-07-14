@@ -1,10 +1,10 @@
 impl InputMap {
-    pub fn default_input_map() -> Self {
+    pub fn default_input_map(overlay_tables: &OverlayKeyTables) -> Self {
         let config = ConfigHandle::default_config();
-        Self::new(&config)
+        Self::new(&config, overlay_tables)
     }
 
-    pub fn new(config: &ConfigHandle) -> Self {
+    pub fn new(config: &ConfigHandle, overlay_tables: &OverlayKeyTables) -> Self {
         let mut mouse = config.mouse_bindings();
 
         let mut keys = config.key_bindings();
@@ -359,10 +359,10 @@ impl InputMap {
 
         keys.by_name
             .entry("copy_mode".to_string())
-            .or_insert_with(crate::overlay::copy::copy_key_table);
+            .or_insert_with(|| overlay_tables.copy_mode.clone());
         keys.by_name
             .entry("search_mode".to_string())
-            .or_insert_with(crate::overlay::copy::search_key_table);
+            .or_insert_with(|| overlay_tables.search_mode.clone());
 
         Self {
             keys,

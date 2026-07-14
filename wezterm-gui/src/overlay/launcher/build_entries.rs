@@ -132,7 +132,7 @@ impl LauncherState {
 
         // Grab interesting key assignments and show those as a kind of command palette
         if args.flags.contains(LauncherFlags::KEY_ASSIGNMENTS) {
-            let input_map = InputMap::new(&config);
+            let input_map = crate::inputmap::new_input_map(&config);
             let mut key_entries: Vec<Entry> = vec![];
             // Give a consistent order to the entries
             let keys: BTreeMap<_, _> = input_map.keys.default.into_iter().collect();

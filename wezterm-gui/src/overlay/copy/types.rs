@@ -2,8 +2,7 @@ use crate::selection::{SelectionCoordinate, SelectionRange, SelectionX};
 use crate::termwindow::keyevent::KeyTableArgs;
 use crate::termwindow::{TermWindow, TermWindowNotif};
 use config::keyassignment::{
-    ClipboardCopyDestination, CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry,
-    ScrollbackEraseMode, SelectionMode,
+    CopyModeAssignment, KeyAssignment, ScrollbackEraseMode, SelectionMode,
 };
 use mux::domain::DomainId;
 use mux::pane::{
@@ -12,7 +11,6 @@ use mux::pane::{
 };
 use mux::renderable::*;
 use mux::tab::TabId;
-use ordered_float::NotNan;
 use parking_lot::{MappedMutexGuard, Mutex, MutexGuard};
 use rangeset::RangeSet;
 use std::collections::HashMap;
@@ -30,7 +28,7 @@ use wezterm_term::{
     unicode_column_width, Clipboard, KeyCode, KeyModifiers, Line, MouseEvent, SemanticType,
     StableRowIndex, TerminalSize,
 };
-use window::{KeyCode as WKeyCode, Modifiers, WindowOps};
+use window::WindowOps;
 
 lazy_static::lazy_static! {
     static ref SAVED_PATTERN: Mutex<HashMap<TabId, Pattern>> = Mutex::new(HashMap::new());

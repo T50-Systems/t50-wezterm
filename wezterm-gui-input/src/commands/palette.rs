@@ -1,7 +1,10 @@
 use super::*;
 
 impl CommandDef {
-    pub fn actions_for_palette_and_menubar(config: &ConfigHandle) -> Vec<ExpandedCommand> {
+    pub fn actions_for_palette_and_menubar(
+        config: &ConfigHandle,
+        inputmap: &InputMap,
+    ) -> Vec<ExpandedCommand> {
         let mut result = Self::expanded_commands(config);
 
         // Generate some stuff based on the config
@@ -120,7 +123,6 @@ impl CommandDef {
         }
 
         // And sweep to pick up stuff from their key assignments
-        let inputmap = InputMap::new(config);
         for ((keycode, mods), entry) in inputmap.keys.default.iter() {
             if result
                 .iter()
@@ -166,7 +168,7 @@ impl CommandDef {
     }
 
     #[cfg(not(target_os = "macos"))]
-    pub fn recreate_menubar(_config: &ConfigHandle) {}
+    pub fn recreate_menubar(_config: &ConfigHandle, _inputmap: &InputMap) {}
 
     /// Update the menubar to reflect the current config state.
     /// We cannot simply build a completely new one and replace it at runtime,
@@ -177,10 +179,8 @@ impl CommandDef {
     /// collection to figure out which items were not reused/updated
     /// and remove them at the end.
     #[cfg(target_os = "macos")]
-    pub fn recreate_menubar(config: &ConfigHandle) {
+    pub fn recreate_menubar(config: &ConfigHandle, inputmap: &InputMap) {
         use window::os::macos::menu::*;
-
-        let inputmap = InputMap::new(config);
 
         let mut candidates_for_removal = vec![];
         #[allow(unexpected_cfgs)] // <https://github.com/SSheldon/rust-objc/issues/125>
@@ -216,7 +216,7 @@ impl CommandDef {
             }
         };
 
-        let mut commands = Self::actions_for_palette_and_menubar(config);
+        let mut commands = Self::actions_for_palette_and_menubar(config, inputmap);
         commands.retain(|cmd| !cmd.menubar.is_empty());
 
         // Prefer to put the menus in this order

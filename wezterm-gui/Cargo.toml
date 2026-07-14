@@ -44,6 +44,7 @@ colorgrad.workspace = true
 config.workspace = true
 wezterm-config-types.workspace = true
 wezterm-custom-glyph.workspace = true
+wezterm-gui-input.workspace = true
 dhat = {workspace=true, optional=true}
 dirs-next.workspace = true
 downcast-rs.workspace = true

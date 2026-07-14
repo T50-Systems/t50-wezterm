@@ -46,7 +46,9 @@ pub fn try_new() -> Result<Rc<GuiFrontEnd>, Error> {
     let config_subscription = config::subscribe_to_config_reload({
         move || {
             promise::spawn::spawn_into_main_thread(async {
-                crate::commands::CommandDef::recreate_menubar(&config::configuration());
+                let config = config::configuration();
+                let input_map = crate::inputmap::new_input_map(&config);
+                crate::commands::CommandDef::recreate_menubar(&config, &input_map);
             })
             .detach();
             true

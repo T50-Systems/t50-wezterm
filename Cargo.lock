@@ -7133,6 +7133,7 @@ dependencies = [
  "wezterm-custom-glyph",
  "wezterm-dynamic",
  "wezterm-font",
+ "wezterm-gui-input",
  "wezterm-gui-subcommands",
  "wezterm-mux-server-impl",
  "wezterm-open-url",
@@ -7144,6 +7145,19 @@ dependencies = [
  "window",
  "window-funcs",
  "windows 0.33.0",
+]
+
+[[package]]
+name = "wezterm-gui-input"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "log",
+ "mux",
+ "ordered-float 4.6.0",
+ "wezterm-dynamic",
+ "wezterm-term-api",
+ "window",
 ]
 
 [[package]]

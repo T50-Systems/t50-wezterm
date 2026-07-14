@@ -9,7 +9,6 @@ use crate::termwindow::render::corners::{
 use crate::termwindow::{DimensionContext, GuiWin, TermWindow};
 use crate::utilsprites::RenderMetrics;
 use config::keyassignment::KeyAssignment;
-use wezterm_config_types::Dimension;
 use frecency::Frecency;
 use luahelper::{from_lua_value_dynamic, impl_lua_conversion_dynamic};
 use mux_lua::MuxPane;
@@ -21,6 +20,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use termwiz::nerdfonts::NERD_FONTS;
+use wezterm_config_types::Dimension;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};
 use window::color::LinearRgba;
@@ -93,7 +93,9 @@ fn build_commands(
     pane: Option<MuxPane>,
     filter_copy_mode: bool,
 ) -> Vec<ExpandedCommand> {
-    let mut commands = CommandDef::actions_for_palette_and_menubar(&config::configuration());
+    let config = config::configuration();
+    let input_map = crate::inputmap::new_input_map(&config);
+    let mut commands = CommandDef::actions_for_palette_and_menubar(&config, &input_map);
 
     match config::run_immediate_with_lua_config(|lua| {
         let mut entries: Vec<UserPaletteEntry> = vec![];

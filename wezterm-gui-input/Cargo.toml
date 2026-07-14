@@ -1,0 +1,18 @@
+[package]
+name = "wezterm-gui-input"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+repository = "https://github.com/wezterm/wezterm"
+description = "GUI command catalog derivation and input-map construction"
+license = "MIT"
+publish = false
+
+[dependencies]
+config.workspace = true
+log.workspace = true
+mux.workspace = true
+ordered-float.workspace = true
+wezterm-dynamic.workspace = true
+wezterm-term-api = { workspace = true, features = ["use_serde"] }
+window.workspace = true
