@@ -1,9 +1,7 @@
 use super::*;
-use config::ConfigHandle;
 use config::keyassignment::{CopyModeAssignment, KeyAssignment, SpawnCommand, SpawnTabDomain};
-use config::{DeferredKeyCode, Key, KeyNoAction};
+use config::{Config, ConfigHandle, DeferredKeyCode, Key, KeyNoAction};
 use std::convert::TryFrom;
-use wezterm_dynamic::ToDynamic;
 use wezterm_input_types::{KeyCode, Modifiers};
 
 #[test]
@@ -99,23 +97,17 @@ fn default_input_map_injects_overlay_tables_and_default_entries() {
 
 #[test]
 fn default_input_map_respects_user_disable_precedence_for_normalized_shift_bindings() {
-    #[derive(ToDynamic)]
-    struct Overrides {
-        keys: Vec<Key>,
-    }
-
-    let overrides = Overrides {
-        keys: vec![Key {
-            key: KeyNoAction {
-                key: DeferredKeyCode::try_from("p").expect("deferred key"),
-                mods: Modifiers::CTRL | Modifiers::SHIFT,
-            },
-            action: KeyAssignment::DisableDefaultAssignment,
-        }],
-    }
-    .to_dynamic();
-
-    let config = config::overridden_config(&overrides).expect("config overrides");
+    // Keep this independent of whether the test host has a wezterm.lua file.
+    let mut config = Config::default_config();
+    config.keys = vec![Key {
+        key: KeyNoAction {
+            key: DeferredKeyCode::try_from("p").expect("deferred key"),
+            mods: Modifiers::CTRL | Modifiers::SHIFT,
+        },
+        action: KeyAssignment::DisableDefaultAssignment,
+    }];
+    config::use_this_configuration(config);
+    let config = config::configuration();
     let overlays = default_overlay_key_tables();
     let input_map = InputMap::new(&config, &overlays);
 
