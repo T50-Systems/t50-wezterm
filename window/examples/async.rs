@@ -1,5 +1,5 @@
 use ::window::*;
-use config::Dimension;
+use wezterm_config_types::Dimension;
 use promise::spawn::spawn;
 use std::cell::RefCell;
 use std::rc::Rc;

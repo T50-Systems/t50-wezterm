@@ -28,8 +28,7 @@ pub enum BlockKey {
 
     PolyWithCustomMetrics {
         polys: &'static [Poly],
-        underline_height: IntPixelLength,
-        cell_size: Size,
+        metrics: BlockKeyMetrics,
     },
 }
 

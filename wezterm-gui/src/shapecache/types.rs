@@ -1,6 +1,6 @@
 use crate::customglyph::BlockKey;
 use crate::glyphcache::CachedGlyph;
-use config::TextStyle;
+use wezterm_config_types::TextStyle;
 use std::rc::Rc;
 use wezterm_font::shaper::GlyphInfo;
 use wezterm_font::units::*;

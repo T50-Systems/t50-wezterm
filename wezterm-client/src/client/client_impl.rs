@@ -4,7 +4,7 @@ impl Client {
         let is_reconnectable = reconnectable.reconnectable();
         let is_local = reconnectable.is_local();
         let (sender, mut receiver) = unbounded();
-        let client_id = ClientId::new();
+        let client_id = new_client_id();
 
         thread::spawn(move || {
             const BASE_INTERVAL: Duration = Duration::from_secs(1);

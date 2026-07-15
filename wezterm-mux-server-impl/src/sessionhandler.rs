@@ -14,8 +14,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use termwiz::surface::SequenceNo;
 use url::Url;
-use wezterm_term::terminal::Alert;
-use wezterm_term::StableRowIndex;
+use wezterm_term_api::terminal::Alert;
+use wezterm_term_api::StableRowIndex;
 
 mod process_one;
 mod process_one_misc;

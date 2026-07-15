@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test {
     use super::*;
+    use chrono::TimeZone;
 
     #[test]
     fn test_frame() {
@@ -117,5 +118,82 @@ mod test {
             },
             Pdu::decode(encoded.as_slice()).unwrap()
         );
+    }
+
+    #[test]
+    fn protocol_client_and_search_pdus_round_trip() {
+        let client = ClientInfo {
+            client_id: std::sync::Arc::new(ClientId {
+                hostname: "host".to_string(),
+                username: "user".to_string(),
+                pid: 123,
+                epoch: 456,
+                id: 7,
+                ssh_auth_sock: Some("/tmp/ssh.sock".to_string()),
+            }),
+            connected_at: chrono::Utc.timestamp_opt(10, 0).single().unwrap(),
+            active_workspace: Some("main".to_string()),
+            last_input: chrono::Utc.timestamp_opt(20, 0).single().unwrap(),
+            focused_pane_id: Some(99),
+        };
+
+        for pdu in [
+            Pdu::GetClientListResponse(GetClientListResponse {
+                clients: vec![client.clone()],
+            }),
+            Pdu::SearchScrollbackRequest(SearchScrollbackRequest {
+                pane_id: 99,
+                pattern: Pattern::Regex("needle".to_string()),
+                range: 10..20,
+                limit: Some(5),
+            }),
+            Pdu::SearchScrollbackResponse(SearchScrollbackResponse {
+                results: vec![SearchResult {
+                    start_y: 10,
+                    start_x: 4,
+                    end_y: 10,
+                    end_x: 10,
+                    match_id: 1,
+                }],
+            }),
+        ] {
+            let mut encoded = Vec::new();
+            pdu.encode(&mut encoded, 0x44).unwrap();
+            assert_eq!(Pdu::decode(encoded.as_slice()).unwrap().pdu, pdu);
+        }
+    }
+
+    #[test]
+    fn protocol_pane_tree_pdu_round_trips() {
+        let pdu = Pdu::ListPanesResponse(ListPanesResponse {
+            tabs: vec![PaneNode::Leaf(wezterm_mux_protocol::tab::PaneEntry {
+                window_id: 1,
+                tab_id: 2,
+                pane_id: 3,
+                title: "pane".to_string(),
+                size: TerminalSize {
+                    rows: 24,
+                    cols: 80,
+                    pixel_width: 800,
+                    pixel_height: 600,
+                    dpi: 96,
+                },
+                working_dir: Some(std::convert::TryFrom::try_from("https://example.com/".to_string()).unwrap()),
+                is_active_pane: true,
+                is_zoomed_pane: false,
+                workspace: "default".to_string(),
+                cursor_pos: StableCursorPosition::default(),
+                physical_top: 0,
+                top_row: 1,
+                left_col: 2,
+                tty_name: Some("ttyS0".to_string()),
+            })],
+            tab_titles: vec!["tab".to_string()],
+            window_titles: std::collections::HashMap::from([(1, "window".to_string())]),
+        });
+
+        let mut encoded = Vec::new();
+        pdu.encode(&mut encoded, 0x45).unwrap();
+        assert_eq!(Pdu::decode(encoded.as_slice()).unwrap().pdu, pdu);
     }
 }

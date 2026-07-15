@@ -349,7 +349,7 @@ impl TermWindow {
         self.fancy_tab_bar.take();
         self.invalidate_fancy_tab_bar();
         self.invalidate_modal();
-        self.input_map = InputMap::new(&config);
+        self.input_map = crate::inputmap::new_input_map(&config);
         self.leader_is_down = None;
         self.render_state.as_mut().map(|rs| rs.config_changed());
         let dimensions = self.dimensions;

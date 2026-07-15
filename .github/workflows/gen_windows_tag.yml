@@ -38,6 +38,26 @@ jobs:
         if: steps.cache-cargo-vendor.outputs.cache-hit != 'true'
         shell: bash
         run: "cargo vendor --locked --versioned-dirs >> .cargo/config.toml"
+      - name: "Fingerprint static OpenSSL cache inputs"
+        id: openssl-cache-context
+        shell: pwsh
+        run: "./ci/windows-openssl-cache.ps1 key"
+      - name: "Restore static OpenSSL"
+        uses: actions/cache/restore@v5.0.5
+        id: cache-openssl
+        with:
+          path: "target/ci-cache/openssl/x86_64-pc-windows-msvc"
+          key: "windows-openssl-msvc-static-v3-${{ steps.openssl-cache-context.outputs.key }}-restore"
+          restore-keys: "windows-openssl-msvc-static-v3-${{ steps.openssl-cache-context.outputs.key }}-"
+      - name: "Activate cached static OpenSSL"
+        id: openssl-cache-activate
+        env:
+          OPENSSL_CACHE_KEY: ${{ steps.openssl-cache-context.outputs.key }}
+        shell: pwsh
+        run: "./ci/windows-openssl-cache.ps1 activate"
+      - name: "Reset release sccache statistics"
+        shell: cmd
+        run: "sccache --zero-stats"
       - name: "Build wezterm (Release mode)"
         shell: cmd
         run: |
@@ -58,6 +78,9 @@ jobs:
         run: |
           PATH C:\Strawberry\perl\bin;%PATH%
           cargo build -p strip-ansi-escapes --release
+      - name: "Report release sccache statistics"
+        shell: cmd
+        run: "sccache --show-stats"
       - name: "Install cargo-nextest from Cargo"
         uses: baptiste0928/cargo-install@v3
         with:

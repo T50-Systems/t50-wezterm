@@ -83,7 +83,7 @@ impl crate::TermWindow {
                 match font.shape(
                     &cluster.text,
                     move || window.notify(TermWindowNotif::InvalidateShapeCache),
-                    BlockKey::filter_out_synthetic,
+                    crate::customglyph::filter_out_synthetic,
                     Some(cluster.presentation),
                     cluster.direction,
                     None, // FIXME: need more paragraph context

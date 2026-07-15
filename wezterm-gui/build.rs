@@ -6,12 +6,16 @@ fn main() {
         use anyhow::Context as _;
         use std::io::Write;
         use std::path::Path;
-        let profile = std::env::var("PROFILE").unwrap();
+        let out_dir = std::env::var_os("OUT_DIR").unwrap();
         let repo_dir = std::env::current_dir()
             .ok()
             .and_then(|cwd| cwd.parent().map(|p| p.to_path_buf()))
             .unwrap();
-        let exe_output_dir = repo_dir.join("target").join(profile);
+        let exe_output_dir = Path::new(&out_dir)
+            .ancestors()
+            .nth(3)
+            .expect("OUT_DIR must be inside target/<profile>/build/<package>/out")
+            .to_path_buf();
         let windows_dir = repo_dir.join("assets").join("windows");
 
         let conhost_dir = windows_dir.join("conhost");

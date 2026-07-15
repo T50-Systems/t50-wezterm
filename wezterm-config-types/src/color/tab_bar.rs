@@ -3,10 +3,10 @@
 pub struct TabBarColor {
     /// Specifies the intensity attribute for the tab title text
     #[dynamic(default)]
-    pub intensity: wezterm_term::Intensity,
+    pub intensity: wezterm_term_api::Intensity,
     /// Specifies the underline attribute for the tab title text
     #[dynamic(default)]
-    pub underline: wezterm_term::Underline,
+    pub underline: wezterm_term_api::Underline,
     /// Specifies the italic attribute for the tab title text
     #[dynamic(default)]
     pub italic: bool,

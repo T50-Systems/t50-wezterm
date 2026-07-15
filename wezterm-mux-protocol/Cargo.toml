@@ -1,0 +1,27 @@
+[package]
+name = "wezterm-mux-protocol"
+version = "0.1.0"
+authors = ["Wez Furlong <wez@wezfurlong.org>"]
+edition = "2018"
+repository = "https://github.com/wezterm/wezterm"
+description = "Stable mux protocol ids and DTOs"
+license = "MIT"
+publish = false
+
+[features]
+lua = ["dep:luahelper", "dep:mlua"]
+
+[dependencies]
+bintree.workspace = true
+chrono = { workspace = true, features = ["clock"] }
+luahelper = { workspace = true, optional = true }
+mlua = { workspace = true, optional = true, features = ["vendored", "lua54", "serialize"] }
+serde = { workspace = true, features = ["rc", "derive"] }
+termwiz = { workspace = true, features = ["use_serde"] }
+url.workspace = true
+wezterm-dynamic.workspace = true
+wezterm-term-api = { workspace = true, features = ["use_serde"] }
+
+[dev-dependencies]
+serde_json.workspace = true
+varbincode.workspace = true

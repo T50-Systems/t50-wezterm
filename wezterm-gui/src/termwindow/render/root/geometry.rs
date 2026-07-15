@@ -81,8 +81,13 @@ impl crate::TermWindow {
             .cached_block(
                 BlockKey::PolyWithCustomMetrics {
                     polys,
-                    underline_height,
-                    cell_size: euclid::size2(cell_size.width as isize, cell_size.height as isize),
+                    metrics: BlockKeyMetrics {
+                        underline_height,
+                        cell_size: CellSize::new(
+                            cell_size.width as isize,
+                            cell_size.height as isize,
+                        ),
+                    },
                 },
                 &self.render_metrics,
             )?

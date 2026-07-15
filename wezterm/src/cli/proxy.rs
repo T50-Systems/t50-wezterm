@@ -2,7 +2,7 @@ use clap::Parser;
 use codec::{Pdu, SetClientId};
 use config::ConfigHandle;
 use mux::activity::Activity;
-use mux::client::ClientId;
+use mux::client::new_client_id;
 use mux::Mux;
 use std::io::{Read, Write};
 use std::sync::Arc;
@@ -31,7 +31,7 @@ impl ProxyCommand {
         let mut stream = unix_connect_with_retry(&target, false, None)?;
 
         let pdu = Pdu::SetClientId(SetClientId {
-            client_id: ClientId::new(),
+            client_id: new_client_id(),
             is_proxy: true,
         });
         let serial = 1;

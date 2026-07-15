@@ -8,7 +8,7 @@ use crate::termwindow::DimensionContext;
 use crate::utilsprites::RenderMetrics;
 use crate::TermWindow;
 use config::keyassignment::{KeyAssignment, PaneSelectArguments, PaneSelectMode};
-use config::Dimension;
+use wezterm_config_types::Dimension;
 use mux::Mux;
 use std::cell::{Ref, RefCell};
 use wezterm_term::{KeyCode, KeyModifiers, MouseEvent};

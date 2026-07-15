@@ -13,11 +13,6 @@
 
 use anyhow::{bail, Context as _, Error};
 use config::keyassignment::{PaneDirection, ScrollbackEraseMode};
-use mux::client::{ClientId, ClientInfo};
-use mux::pane::PaneId;
-use mux::renderable::{RenderableDimensions, StableCursorPosition};
-use mux::tab::{PaneNode, SerdeUrl, SplitRequest, TabId};
-use mux::window::WindowId;
 use portable_pty::CommandBuilder;
 use rangeset::*;
 use serde::{Deserialize, Serialize};
@@ -33,8 +28,13 @@ use termwiz::hyperlink::Hyperlink;
 use termwiz::image::{ImageData, TextureCoordinate};
 use termwiz::surface::{Line, SequenceNo};
 use thiserror::Error;
-use wezterm_term::color::ColorPalette;
-use wezterm_term::{Alert, ClipboardSelection, StableRowIndex, TerminalSize};
+use wezterm_mux_protocol::client::{ClientId, ClientInfo};
+use wezterm_mux_protocol::pane::{PaneId, Pattern, SearchResult};
+use wezterm_mux_protocol::renderable::{RenderableDimensions, StableCursorPosition};
+use wezterm_mux_protocol::tab::{PaneNode, SerdeUrl, SplitRequest, TabId};
+use wezterm_mux_protocol::window::WindowId;
+use wezterm_term_api::color::ColorPalette;
+use wezterm_term_api::{Alert, ClipboardSelection, StableRowIndex, TerminalSize};
 
 include!("lib/raw.rs");
 include!("lib/pdu.rs");

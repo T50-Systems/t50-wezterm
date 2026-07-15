@@ -89,35 +89,35 @@ impl Config {
 
         cfg.font_rules.push(StyleRule {
             italic: Some(true),
-            intensity: Some(wezterm_term::Intensity::Half),
+            intensity: Some(wezterm_term_api::Intensity::Half),
             font: half_bright_italic,
             ..Default::default()
         });
 
         cfg.font_rules.push(StyleRule {
             italic: Some(false),
-            intensity: Some(wezterm_term::Intensity::Half),
+            intensity: Some(wezterm_term_api::Intensity::Half),
             font: half_bright,
             ..Default::default()
         });
 
         cfg.font_rules.push(StyleRule {
             italic: Some(false),
-            intensity: Some(wezterm_term::Intensity::Bold),
+            intensity: Some(wezterm_term_api::Intensity::Bold),
             font: bold,
             ..Default::default()
         });
 
         cfg.font_rules.push(StyleRule {
             italic: Some(true),
-            intensity: Some(wezterm_term::Intensity::Bold),
+            intensity: Some(wezterm_term_api::Intensity::Bold),
             font: bold_italic,
             ..Default::default()
         });
 
         cfg.font_rules.push(StyleRule {
             italic: Some(true),
-            intensity: Some(wezterm_term::Intensity::Normal),
+            intensity: Some(wezterm_term_api::Intensity::Normal),
             font: italic,
             ..Default::default()
         });

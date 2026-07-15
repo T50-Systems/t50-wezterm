@@ -60,7 +60,7 @@ impl super::TermWindow {
                 let infos = element.font.shape(
                     &s,
                     move || window.notify(TermWindowNotif::InvalidateShapeCache),
-                    BlockKey::filter_out_synthetic,
+                    crate::customglyph::filter_out_synthetic,
                     element.presentation,
                     direction,
                     None,

@@ -125,7 +125,7 @@ impl TermWindow {
             pending_scale_changes: LinkedList::new(),
             terminal_size,
             render_state,
-            input_map: InputMap::new(&config),
+            input_map: crate::inputmap::new_input_map(&config),
             leader_is_down: None,
             dead_key_status: DeadKeyStatus::None,
             show_tab_bar,

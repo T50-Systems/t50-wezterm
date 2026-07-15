@@ -64,10 +64,6 @@ pub struct TabEntry {
 }
 
 impl TabEntry {
-    pub fn x(&self) -> usize {
-        self.x
-    }
-
     pub fn width(&self) -> usize {
         self.width
     }

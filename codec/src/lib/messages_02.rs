@@ -153,14 +153,14 @@ pub struct EraseScrollbackRequest {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SearchScrollbackRequest {
     pub pane_id: PaneId,
-    pub pattern: mux::pane::Pattern,
+    pub pattern: Pattern,
     pub range: Range<StableRowIndex>,
     pub limit: Option<u32>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 pub struct SearchScrollbackResponse {
-    pub results: Vec<mux::pane::SearchResult>,
+    pub results: Vec<SearchResult>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]

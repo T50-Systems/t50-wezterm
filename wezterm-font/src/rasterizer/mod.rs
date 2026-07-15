@@ -1,6 +1,6 @@
 use crate::parser::ParsedFont;
 use crate::units::*;
-use config::FontRasterizerSelection;
+use wezterm_config_types::FontRasterizerSelection;
 use image::{ImageBuffer, Rgba};
 
 /// The amount, as a number in [0,1], to horizontally skew a glyph when rendering synthetic

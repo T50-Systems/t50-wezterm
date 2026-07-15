@@ -1,10 +1,9 @@
-fn is_whitespace_word(word: &str) -> bool {
-    if let Some(c) = word.chars().next() {
-        c.is_whitespace()
-    } else {
-        false
-    }
-}
+use config::keyassignment::{
+    ClipboardCopyDestination, CopyModeAssignment, KeyAssignment, KeyTable, KeyTableEntry,
+    SelectionMode,
+};
+use ordered_float::NotNan;
+use wezterm_input_types::{KeyCode as WKeyCode, Modifiers};
 
 pub fn search_key_table() -> KeyTable {
     let mut table = KeyTable::default();

@@ -1,16 +1,14 @@
 use super::*;
 
-impl GlyphCache {
-    pub(super) fn block_sprite_part2(
-        &mut self,
+pub(crate) fn block_sprite_part2(
         block: BlockKey,
-        metrics: &RenderMetrics,
-        mut buffer: &mut Image,
+        metrics: &RasterizeGlyphParams,
+        mut buffer: &mut Pixmap,
     ) -> Option<()> {
         Some(match block {
             BlockKey::Progress(chunks) => {
                 let mut draw = |cmd: &'static [PolyCommand], style: PolyStyle| {
-                    self.draw_polys(
+                    draw_polys(
                         &metrics,
                         &[Poly {
                             path: cmd,
@@ -18,11 +16,7 @@ impl GlyphCache {
                             style: style,
                         }],
                         &mut buffer,
-                        if config::configuration().anti_alias_custom_block_glyphs {
-                            PolyAA::AntiAlias
-                        } else {
-                            PolyAA::MoarPixels
-                        },
+                        poly_aa(metrics.anti_alias),
                         BlendMode::default(),
                     );
                 };
@@ -142,7 +136,7 @@ impl GlyphCache {
             BlockKey::Branches(pattern) => {
                 let mut draw =
                     |cmd: &'static [PolyCommand], style: PolyStyle, blend_mode: BlendMode| {
-                        self.draw_polys(
+                        draw_polys(
                             &metrics,
                             &[Poly {
                                 path: cmd,
@@ -150,11 +144,7 @@ impl GlyphCache {
                                 style: style,
                             }],
                             &mut buffer,
-                            if config::configuration().anti_alias_custom_block_glyphs {
-                                PolyAA::AntiAlias
-                            } else {
-                                PolyAA::MoarPixels
-                            },
+                            poly_aa(metrics.anti_alias),
                             blend_mode,
                         );
                     };
@@ -310,5 +300,4 @@ impl GlyphCache {
             }
             _ => return None,
         })
-    }
 }

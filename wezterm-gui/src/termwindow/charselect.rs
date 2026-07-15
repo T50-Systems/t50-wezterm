@@ -11,7 +11,7 @@ use crate::TermWindow;
 use config::keyassignment::{
     CharSelectArguments, CharSelectGroup, ClipboardCopyDestination, KeyAssignment,
 };
-use config::Dimension;
+use wezterm_config_types::Dimension;
 use emojis::{Emoji, Group};
 use frecency::Frecency;
 use rayon::prelude::*;

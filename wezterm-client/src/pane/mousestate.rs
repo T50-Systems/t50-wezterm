@@ -5,7 +5,7 @@ use parking_lot::Mutex;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use wezterm_term::{MouseButton, MouseEvent, MouseEventKind};
+use wezterm_term_api::{MouseButton, MouseEvent, MouseEventKind};
 
 pub struct MouseState {
     pending: AtomicBool,

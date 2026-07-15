@@ -1,5 +1,5 @@
 use crate::parser::ParsedFont;
-use config::FontAttributes;
+use wezterm_config_types::FontAttributes;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -245,7 +245,7 @@ pub fn new_locator(locator: FontLocatorSelection) -> Arc<dyn FontLocator + Send 
 
 struct NopSystemSource {}
 
-pub use config::FontLocatorSelection;
+pub use wezterm_config_types::FontLocatorSelection;
 
 impl FontLocator for NopSystemSource {
     fn load_fonts(

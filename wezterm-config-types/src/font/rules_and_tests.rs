@@ -17,17 +17,17 @@ pub struct StyleRule {
     /// If present, this rule matches when CellAttributes::intensity holds
     /// a value that matches this rule.  Valid values are "Bold", "Normal",
     /// "Half".
-    pub intensity: Option<wezterm_term::Intensity>,
+    pub intensity: Option<wezterm_term_api::Intensity>,
     /// If present, this rule matches when CellAttributes::underline holds
     /// a value that matches this rule.  Valid values are "None", "Single",
     /// "Double".
-    pub underline: Option<wezterm_term::Underline>,
+    pub underline: Option<wezterm_term_api::Underline>,
     /// If present, this rule matches when CellAttributes::italic holds
     /// a value that matches this rule.
     pub italic: Option<bool>,
     /// If present, this rule matches when CellAttributes::blink holds
     /// a value that matches this rule.
-    pub blink: Option<wezterm_term::Blink>,
+    pub blink: Option<wezterm_term_api::Blink>,
     /// If present, this rule matches when CellAttributes::reverse holds
     /// a value that matches this rule.
     pub reverse: Option<bool>,

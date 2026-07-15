@@ -16,6 +16,11 @@ members = [
   "wezterm-ssh",
   "wezterm-surface",
   "wezterm-uds",
+  "wezterm-term-api",
+  "wezterm-config-types",
+  "wezterm-mux-protocol",
+  "wezterm-custom-glyph",
+  "wezterm-gui-input",
 ]
 resolver = "2"
 exclude = [
@@ -26,6 +31,12 @@ exclude = [
 [profile.release]
 opt-level = 3
 # debug = 2
+
+[profile.release-fast]
+# Optimized local feedback profile. Shipping artifacts continue to use `release`.
+inherits = "release"
+incremental = true
+codegen-units = 256
 
 [profile.dev]
 # https://jakedeichert.com/blog/reducing-rust-incremental-compilation-times-on-macos-by-70-percent/
@@ -143,6 +154,7 @@ mio = "0.8"
 mlua = "0.9"
 mux = { path = "mux" }
 mux-lua = { path = "lua-api-crates/mux" }
+wezterm-mux-protocol = { path = "wezterm-mux-protocol" }
 names = { version = "0.12", default-features = false }
 nix = "0.29"
 notify = "5.0.0"
@@ -246,17 +258,21 @@ wezterm-char-props = { path = "wezterm-char-props", default-features=false }
 wezterm-client = { path = "wezterm-client" }
 wezterm-color-types = { version="0.3", path = "color-types", default-features=false }
 wezterm-config-derive = { version="0.1", path="config/derive" }
+wezterm-config-types = { path = "wezterm-config-types" }
+wezterm-custom-glyph = { path = "wezterm-custom-glyph" }
 wezterm-dynamic = { version = "0.2.1", path = "wezterm-dynamic", default-features=false }
 wezterm-dynamic-derive = { version="0.1.1", path="wezterm-dynamic/derive" }
 wezterm-escape-parser = { version="0.1.0", path="wezterm-escape-parser" }
 wezterm-font = { path = "wezterm-font" }
 wezterm-gui-subcommands = { path = "wezterm-gui-subcommands" }
+wezterm-gui-input = { path = "wezterm-gui-input" }
 wezterm-input-types = { version="0.1", path = "wezterm-input-types", default-features=false }
 wezterm-mux-server-impl = { path = "wezterm-mux-server-impl" }
 wezterm-open-url = { path = "wezterm-open-url" }
 wezterm-ssh = { path = "wezterm-ssh" }
 wezterm-surface = { path = "wezterm-surface" }
 wezterm-term = { path = "term" }
+wezterm-term-api = { path = "wezterm-term-api" }
 wezterm-toast-notification = { path = "wezterm-toast-notification" }
 wezterm-uds = { path = "wezterm-uds" }
 wezterm-version = { path = "wezterm-version" }

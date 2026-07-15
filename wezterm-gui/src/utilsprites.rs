@@ -4,7 +4,7 @@ use ::window::bitmaps::{BitmapImage, Image};
 use ::window::color::SrgbaPixel;
 use ::window::{Point, Rect, Size};
 use anyhow::Context;
-use config::DimensionContext;
+use wezterm_config_types::DimensionContext;
 use std::rc::Rc;
 use wezterm_font::units::*;
 use wezterm_font::{FontConfiguration, FontMetrics};

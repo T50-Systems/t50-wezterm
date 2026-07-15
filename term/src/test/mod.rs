@@ -2,6 +2,7 @@
 //! processing routines.
 
 use super::*;
+mod api_compat;
 mod c0;
 use bitflags::bitflags;
 mod c1;

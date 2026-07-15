@@ -11,7 +11,7 @@ keywords = ["terminal", "emulator", "vte"]
 readme = "README.md"
 
 [features]
-use_serde = ["termwiz/use_serde", "wezterm-cell/use_serde", "wezterm-escape-parser/use_serde", "wezterm-surface/use_serde"]
+use_serde = ["termwiz/use_serde", "wezterm-cell/use_serde", "wezterm-escape-parser/use_serde", "wezterm-surface/use_serde", "wezterm-term-api/use_serde"]
 
 [dependencies]
 anyhow.workspace = true
@@ -37,6 +37,7 @@ wezterm-dynamic = {workspace = true, features=["std"]}
 wezterm-cell = {workspace = true, features=["std", "use_image"]}
 wezterm-escape-parser = {workspace = true, features=["std", "use_image"]}
 wezterm-surface = {workspace = true, features=["std", "appdata", "use_image"]}
+wezterm-term-api.workspace = true
 
 [dev-dependencies]
 env_logger.workspace = true

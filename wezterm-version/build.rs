@@ -1,3 +1,45 @@
+use std::path::PathBuf;
+use std::process::Command;
+
+fn git_output(args: &[&str]) -> Option<String> {
+    let output = Command::new("git").args(args).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+
+    let value = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    (!value.is_empty()).then_some(value)
+}
+
+fn git_path(path: &str) -> Option<PathBuf> {
+    let path = PathBuf::from(git_output(&["rev-parse", "--git-path", path])?);
+    if path.is_absolute() {
+        Some(path)
+    } else {
+        Some(std::env::current_dir().ok()?.join(path))
+    }
+}
+
+fn track_git_state() -> bool {
+    let Some(head) = git_path("HEAD") else {
+        return false;
+    };
+
+    if head.exists() {
+        println!("cargo:rerun-if-changed={}", head.display());
+    }
+
+    if let Some(reference) = git_output(&["symbolic-ref", "-q", "HEAD"]) {
+        if let Some(reference_path) = git_path(&reference) {
+            if reference_path.exists() {
+                println!("cargo:rerun-if-changed={}", reference_path.display());
+            }
+        }
+    }
+
+    true
+}
+
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
@@ -9,45 +51,22 @@ fn main() {
             ci_tag = s.trim().to_string();
             println!("cargo:rerun-if-changed=../.tag");
         }
-    } else {
-        // Otherwise we'll derive it from the git information
-
-        if let Ok(repo) = git2::Repository::discover(".") {
-            if let Ok(ref_head) = repo.find_reference("HEAD") {
-                let repo_path = repo.path().to_path_buf();
-
-                if let Ok(resolved) = ref_head.resolve() {
-                    if let Some(name) = resolved.name() {
-                        let path = repo_path.join(name);
-                        if path.exists() {
-                            println!(
-                                "cargo:rerun-if-changed={}",
-                                path.canonicalize().unwrap().display()
-                            );
-                        }
-                    }
-                }
-            }
-
-            if let Ok(output) = std::process::Command::new("git")
-                .args(&[
-                    "-c",
-                    "core.abbrev=8",
-                    "show",
-                    "-s",
-                    "--format=%cd-%h",
-                    "--date=format:%Y%m%d-%H%M%S",
-                ])
-                .output()
-            {
-                let info = String::from_utf8_lossy(&output.stdout);
-                ci_tag = info.trim().to_string();
-            }
+    } else if track_git_state() {
+        // Otherwise derive it from git without linking libgit2 into this build script.
+        if let Some(info) = git_output(&[
+            "-c",
+            "core.abbrev=8",
+            "show",
+            "-s",
+            "--format=%cd-%h",
+            "--date=format:%Y%m%d-%H%M%S",
+        ]) {
+            ci_tag = info;
         }
     }
 
     let target = std::env::var("TARGET").unwrap_or_else(|_| "unknown".to_string());
 
-    println!("cargo:rustc-env=WEZTERM_TARGET_TRIPLE={}", target);
-    println!("cargo:rustc-env=WEZTERM_CI_TAG={}", ci_tag);
+    println!("cargo:rustc-env=WEZTERM_TARGET_TRIPLE={target}");
+    println!("cargo:rustc-env=WEZTERM_CI_TAG={ci_tag}");
 }

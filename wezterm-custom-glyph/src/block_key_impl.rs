@@ -1,13 +1,6 @@
 use super::*;
 
 impl BlockKey {
-    pub fn filter_out_synthetic(glyphs: &mut Vec<char>) {
-        let config = config::configuration();
-        if config.custom_block_glyphs {
-            glyphs.retain(|&c| Self::from_char(c).is_none());
-        }
-    }
-
     pub fn from_str(s: &str) -> Option<Self> {
         let mut chars = s.chars();
         let first_char = chars.next()?;

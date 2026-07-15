@@ -12,7 +12,7 @@ use portable_pty::CommandBuilder;
 use std::collections::HashMap;
 use std::sync::Arc;
 use wezterm_dynamic::{FromDynamic, ToDynamic};
-use wezterm_term::TerminalSize;
+use wezterm_term_api::TerminalSize;
 
 mod domain;
 mod pane;
@@ -218,7 +218,7 @@ struct SpawnWindow {
     width: Option<usize>,
     height: Option<usize>,
     workspace: Option<String>,
-    position: Option<config::GuiPosition>,
+    position: Option<wezterm_config_types::GuiPosition>,
     #[dynamic(flatten)]
     cmd_builder: CommandBuilderFrag,
 }

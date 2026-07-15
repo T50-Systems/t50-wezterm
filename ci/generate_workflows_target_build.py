@@ -22,6 +22,14 @@ def build_all_release(self):
         "strip-ansi-escapes",
     ]
     steps = []
+    if "win" in self.name:
+        steps.append(
+            RunStep(
+                name="Reset release sccache statistics",
+                shell="cmd",
+                run="sccache --zero-stats",
+            )
+        )
     for bin in bin_crates:
         if "win" in self.name:
             steps += [
@@ -53,6 +61,14 @@ def build_all_release(self):
                     run=enable + f"cargo build -p {bin} --release",
                 )
             ]
+    if "win" in self.name:
+        steps.append(
+            RunStep(
+                name="Report release sccache statistics",
+                shell="cmd",
+                run="sccache --show-stats",
+            )
+        )
     return steps
 
 def test_all(self):
